@@ -1,0 +1,3214 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f9d58">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Питание по бюджету</title>
+<link id="manifest-link" rel="manifest">
+<style>
+:root{
+  --bg:#f2f6f3; --card:#fff; --text:#132019; --muted:#6c8078;
+  --accent:#0f9d58; --accent-d:#0b7a44; --soft:#e6f4ec; --border:#e4ece7;
+  --chip:#eef4f0; --danger:#c2410c; --radius:18px;
+  --like:#ef4444; --like-bg:#fee2e2;
+  --dislike:#f59e0b; --dislike-bg:#fef3c7;
+  --season:#f97316; --season-bg:#fff7ed;
+  --delivery:#e11d48; --delivery-bg:#fee2e2;
+  --shadow:0 2px 12px rgba(16,60,40,.07);
+  --photo-size:64px;
+}
+[data-theme="dark"]{
+  --bg:#0f1613; --card:#1a231f; --text:#e8f0eb; --muted:#8ba39a;
+  --accent:#22c55e; --accent-d:#16a34a; --soft:#1f2e27; --border:#2a3833;
+  --chip:#243029; --danger:#fb923c;
+  --like:#f87171; --like-bg:#3f1d1d;
+  --dislike:#fbbf24; --dislike-bg:#3d2c0a;
+  --season:#fb923c; --season-bg:#3d2010;
+  --delivery:#fb7185; --delivery-bg:#3d1015;
+  --shadow:0 2px 12px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  background:var(--bg);color:var(--text);font-size:16px;line-height:1.45;
+  padding-bottom:60px;overflow-x:hidden;transition:background .25s,color .25s}
+.app-header{background:linear-gradient(140deg,#12a862,#0a7a45);color:#fff;
+  padding:18px 20px 28px;border-radius:0 0 26px 26px}
+[data-theme="dark"] .app-header{background:linear-gradient(140deg,#0f7a44,#0a5c33)}
+.app-header .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.app-header h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.4px;
+  display:flex;align-items:center;gap:8px}
+.app-header .logo{font-size:22px}
+.app-header p{margin:4px 0 0;font-size:12.5px;opacity:.85;font-weight:500}
+.header-btns{display:flex;gap:8px;flex:0 0 auto}
+.header-btn{background:rgba(255,255,255,.18);border:none;color:#fff;
+  width:38px;height:38px;border-radius:12px;font-size:18px;cursor:pointer;
+  display:grid;place-items:center;transition:.15s}
+.header-btn:active{transform:scale(.92)}
+.header-btn.hidden{display:none}
+main{padding:0 14px;margin-top:-14px;max-width:560px;margin-left:auto;margin-right:auto}
+.wizard-progress{display:flex;gap:5px;margin-bottom:20px}
+.p-dot{flex:1;height:5px;background:var(--soft);border-radius:99px;transition:background .3s}
+.p-dot.done{background:var(--accent)}
+.p-dot.current{background:linear-gradient(90deg,var(--accent),var(--accent-d))}
+.wizard-step{display:none;animation:slideIn .28s ease}
+.wizard-step.active{display:block}
+@keyframes slideIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+.wizard-step h2{margin:0 0 6px;font-size:26px;font-weight:800;letter-spacing:-.6px;line-height:1.15}
+.wizard-step .step-sub{font-size:14.5px;color:var(--muted);margin-bottom:22px;font-weight:500;line-height:1.4}
+.big-input{background:var(--card);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);
+  margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.big-input .bi-info{flex:1;min-width:0}
+.big-input .bi-label{font-size:12px;font-weight:800;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.big-input .bi-hint{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:3px}
+.big-input .bi-controls{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.big-input .step-btn{width:44px;height:44px;border-radius:13px;border:none;
+  background:var(--soft);color:var(--text);font-size:22px;font-weight:800;
+  cursor:pointer;display:grid;place-items:center;transition:.15s;font-family:inherit;padding:0;line-height:1}
+.big-input .step-btn:active{transform:scale(.9);background:var(--accent);color:#fff}
+.big-input input{width:90px;padding:10px 8px;font-size:22px;font-weight:800;text-align:center;
+  border:2px solid var(--border);background:var(--card);color:var(--text);border-radius:13px;
+  outline:none;font-family:inherit;-moz-appearance:textfield}
+.big-input input::-webkit-outer-spin-button,
+.big-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.big-input input:focus{border-color:var(--accent)}
+.presets-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.preset-btn{position:relative;padding:16px 14px 14px;border:2px solid var(--border);
+  background:var(--card);border-radius:16px;cursor:pointer;font-family:inherit;color:var(--text);
+  transition:all .2s;text-align:left;display:flex;flex-direction:column;gap:8px;overflow:hidden;
+  box-shadow:0 2px 8px rgba(16,60,40,.04)}
+.preset-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--accent)}
+.preset-btn[data-preset="eco"]::before{background:linear-gradient(90deg,#84cc16,#65a30d)}
+.preset-btn[data-preset="stand"]::before{background:linear-gradient(90deg,#12a862,#0a7a45)}
+.preset-btn[data-preset="comf"]::before{background:linear-gradient(90deg,#8b5cf6,#7c3aed)}
+.preset-btn[data-preset="month"]::before{background:linear-gradient(90deg,#0ea5e9,#0284c7)}
+.preset-btn:active{transform:scale(.97)}
+.preset-btn.active{border-color:var(--accent);background:var(--soft);box-shadow:0 4px 16px rgba(15,157,88,.15)}
+.preset-btn .pn{font-size:14px;font-weight:800;letter-spacing:-.2px;display:flex;align-items:center;gap:6px}
+.preset-btn .pn .preset-icon{font-size:20px;line-height:1}
+.preset-btn .preset-price{font-size:20px;font-weight:800;letter-spacing:-.6px;color:var(--accent-d)}
+[data-theme="dark"] .preset-btn .preset-price{color:var(--accent)}
+.preset-btn .ps{font-size:11px;color:var(--muted);font-weight:600;line-height:1.35;
+  display:flex;flex-direction:column;gap:1px}
+.preset-btn .ps-row{display:flex;align-items:center;gap:5px}
+.preset-btn .ps-row span:first-child{opacity:.7}
+
+/* ── Goal cards ── */
+.goal-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.goal-card{width:100%;padding:18px;border:2px solid var(--border);background:var(--card);
+  border-radius:16px;cursor:pointer;font-family:inherit;color:var(--text);transition:.15s;
+  display:flex;align-items:center;gap:14px;text-align:left;position:relative;overflow:hidden}
+.goal-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:5px;background:var(--accent)}
+.goal-card[data-goal="maintain"]::before{background:linear-gradient(180deg,#12a862,#0a7a45)}
+.goal-card[data-goal="lose"]::before{background:linear-gradient(180deg,#f59e0b,#d97706)}
+.goal-card[data-goal="calories"]::before{background:linear-gradient(180deg,#8b5cf6,#7c3aed)}
+.goal-card.active{border-color:var(--accent);background:var(--soft)}
+.goal-card:active{transform:scale(.98)}
+.goal-icon{width:52px;height:52px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;
+  font-size:26px;background:var(--soft)}
+.goal-card[data-goal="maintain"] .goal-icon{background:linear-gradient(135deg,#dcfce7,#86efac)}
+.goal-card[data-goal="lose"] .goal-icon{background:linear-gradient(135deg,#fef3c7,#fde68a)}
+.goal-card[data-goal="calories"] .goal-icon{background:linear-gradient(135deg,#ede9fe,#c4b5fd)}
+[data-theme="dark"] .goal-card[data-goal="maintain"] .goal-icon{background:linear-gradient(135deg,#14532d,#166534)}
+[data-theme="dark"] .goal-card[data-goal="lose"] .goal-icon{background:linear-gradient(135deg,#78350f,#a16207)}
+[data-theme="dark"] .goal-card[data-goal="calories"] .goal-icon{background:linear-gradient(135deg,#4c1d95,#5b21b6)}
+.goal-info{flex:1;min-width:0}
+.goal-name{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.goal-desc{font-size:12px;color:var(--muted);margin-top:3px;font-weight:600;line-height:1.35}
+.goal-check{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);flex:0 0 auto;
+  display:grid;place-items:center;font-size:14px;color:transparent;font-weight:900;transition:.15s}
+.goal-card.active .goal-check{background:var(--accent);border-color:var(--accent);color:#fff}
+#custom-kcal-wrap{margin-top:6px;margin-bottom:14px;padding:14px;background:var(--card);
+  border-radius:14px;box-shadow:var(--shadow)}
+#custom-kcal-wrap label{font-size:12.5px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.4px;margin:0;display:block}
+#custom-kcal-wrap input{width:100%;margin-top:8px;padding:14px;font-size:20px;font-weight:800;
+  text-align:center;border:2px solid var(--border);border-radius:13px;background:var(--bg);
+  color:var(--text);outline:none;font-family:inherit;-moz-appearance:textfield}
+#custom-kcal-wrap input::-webkit-outer-spin-button,
+#custom-kcal-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#custom-kcal-wrap input:focus{border-color:var(--accent)}
+
+.store-card{width:100%;padding:16px 18px;border:2px solid var(--border);background:var(--card);
+  border-radius:16px;cursor:pointer;font-family:inherit;color:var(--text);transition:.15s;
+  display:flex;align-items:center;gap:14px;text-align:left;margin-bottom:10px}
+.store-card.active{border-color:var(--accent);background:var(--soft)}
+.store-card:active{transform:scale(.98)}
+.sc-logo{width:52px;height:52px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;
+  color:#fff;font-weight:900;font-size:20px;letter-spacing:-1px;box-shadow:0 3px 8px rgba(0,0,0,.15)}
+.sc-info{flex:1;min-width:0}
+.sc-name{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.sc-desc{font-size:12px;color:var(--muted);margin-top:3px;font-weight:600}
+.sc-check{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);flex:0 0 auto;
+  display:grid;place-items:center;font-size:14px;color:transparent;font-weight:900;transition:.15s}
+.store-card.active .sc-check{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.swipe-wrap{position:relative;height:440px;margin-bottom:20px;user-select:none;-webkit-user-select:none}
+.swipe-stage{position:relative;width:100%;height:100%;perspective:1000px}
+.swipe-card{position:absolute;inset:0;background:var(--card);border-radius:22px;
+  box-shadow:0 10px 32px rgba(16,60,40,.12),0 2px 8px rgba(16,60,40,.06);overflow:hidden;
+  display:flex;flex-direction:column;will-change:transform,opacity;touch-action:pan-y;
+  transform-origin:center bottom;transition:transform .3s cubic-bezier(.32,.72,0,1),opacity .3s ease}
+[data-theme="dark"] .swipe-card{box-shadow:0 10px 32px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.3)}
+.swipe-card.dragging{transition:none;cursor:grabbing}
+.swipe-card.behind{pointer-events:none}
+.swipe-photo{height:230px;flex:0 0 auto;position:relative;background:linear-gradient(135deg,#fef3c7,#fed7aa);
+  display:grid;place-items:center;font-size:80px;overflow:hidden}
+.swipe-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.swipe-photo.breakfast{background:linear-gradient(135deg,#fef9c3,#fed7aa)}
+.swipe-photo.lunch{background:linear-gradient(135deg,#dcfce7,#86efac)}
+.swipe-photo.dinner{background:linear-gradient(135deg,#dbeafe,#bfdbfe)}
+.swipe-photo.snack{background:linear-gradient(135deg,#fce7f3,#fbcfe8)}
+[data-theme="dark"] .swipe-photo.breakfast{background:linear-gradient(135deg,#78350f,#a16207)}
+[data-theme="dark"] .swipe-photo.lunch{background:linear-gradient(135deg,#14532d,#166534)}
+[data-theme="dark"] .swipe-photo.dinner{background:linear-gradient(135deg,#1e3a8a,#1d4ed8)}
+[data-theme="dark"] .swipe-photo.snack{background:linear-gradient(135deg,#831843,#9d174d)}
+.swipe-photo .emo{filter:drop-shadow(0 3px 10px rgba(0,0,0,.2));position:relative;z-index:1}
+.swipe-stamp{position:absolute;top:24px;padding:10px 18px;border-radius:14px;font-size:20px;
+  font-weight:900;letter-spacing:1px;text-transform:uppercase;border:4px solid;opacity:0;
+  z-index:10;pointer-events:none}
+.swipe-stamp.like{left:20px;color:var(--like);border-color:var(--like);
+  background:rgba(255,255,255,.92);transform:rotate(-12deg) scale(1.05)}
+.swipe-stamp.dislike{right:20px;color:var(--dislike);border-color:var(--dislike);
+  background:rgba(255,255,255,.92);transform:rotate(12deg) scale(1.05)}
+[data-theme="dark"] .swipe-stamp.like,
+[data-theme="dark"] .swipe-stamp.dislike{background:rgba(26,35,31,.92)}
+.swipe-info{flex:1;padding:18px 20px 16px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.swipe-type{font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.7px}
+.swipe-title{font-size:20px;font-weight:800;letter-spacing:-.4px;line-height:1.25}
+.swipe-meta{font-size:13px;color:var(--muted);font-weight:600;display:flex;gap:14px;flex-wrap:wrap}
+.swipe-ing{margin-top:auto;font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.4;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.swipe-progress{display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:14px;
+  font-size:13px;font-weight:700;color:var(--muted)}
+.swipe-progress .sp-counter{background:var(--card);border-radius:12px;padding:8px 16px;
+  box-shadow:var(--shadow);font-size:14px}
+.swipe-progress .sp-counter b{color:var(--text);font-weight:800}
+.swipe-progress .sp-hint{font-size:11.5px;opacity:.7;display:flex;align-items:center;gap:6px}
+.swipe-btns{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:4px}
+.swipe-btn{width:64px;height:64px;border-radius:50%;border:none;background:var(--card);
+  box-shadow:0 6px 20px rgba(16,60,40,.15),0 2px 6px rgba(16,60,40,.08);cursor:pointer;
+  display:grid;place-items:center;font-size:26px;transition:transform .15s,box-shadow .15s;
+  font-family:inherit;padding:0;color:var(--text)}
+.swipe-btn:active{transform:scale(.88)}
+.swipe-btn.small{width:52px;height:52px;font-size:20px}
+.swipe-btn.undo{color:var(--muted)}
+.swipe-btn.undo:disabled{opacity:.35;cursor:not-allowed}
+.swipe-btn.dislike{color:var(--dislike)}
+.swipe-btn.like{color:var(--like)}
+.swipe-done{background:var(--card);border-radius:22px;padding:40px 24px;text-align:center;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;gap:12px}
+.swipe-done .done-icon{font-size:64px;line-height:1}
+.swipe-done h3{margin:0;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.swipe-done p{margin:0;color:var(--muted);font-size:14px;font-weight:600}
+.swipe-done .done-stats{display:flex;gap:16px;margin-top:8px;padding:14px 20px;
+  background:var(--soft);border-radius:14px}
+.swipe-done .done-stats .ds-item{text-align:center}
+.swipe-done .done-stats .ds-num{font-size:22px;font-weight:800;line-height:1}
+.swipe-done .done-stats .ds-item.liked .ds-num{color:var(--like)}
+.swipe-done .done-stats .ds-item.disliked .ds-num{color:var(--dislike)}
+.swipe-done .done-stats .ds-item.neutral .ds-num{color:var(--accent)}
+.swipe-done .done-stats .ds-lbl{font-size:10.5px;color:var(--muted);font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.swipe-done .btn-reset{margin-top:12px;padding:12px 24px;border:1.5px solid var(--border);
+  background:var(--card);color:var(--text);border-radius:12px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit}
+.swipe-done .btn-reset:active{transform:scale(.97)}
+.swipe-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;justify-content:center}
+.swipe-filter button{padding:7px 14px;border-radius:99px;border:1.5px solid var(--border);
+  background:var(--card);color:var(--muted);font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:.15s}
+.swipe-filter button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.swipe-filter button:active{transform:scale(.95)}
+
+.switch-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;
+  font-size:15px;font-weight:600;background:var(--card);border-radius:14px;
+  box-shadow:var(--shadow);margin-bottom:10px;gap:12px}
+.switch-row .sr-text{flex:1;min-width:0}
+.switch-row .sr-title{font-size:14.5px;font-weight:700;letter-spacing:-.2px}
+.switch-row .sr-hint{font-size:11.5px;color:var(--muted);margin-top:3px;font-weight:600}
+.switch{position:relative;width:50px;height:29px;flex:0 0 auto}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#cfded6;border-radius:99px;transition:.2s;cursor:pointer}
+.slider::before{content:'';position:absolute;height:23px;width:23px;left:3px;top:3px;
+  background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.switch input:checked + .slider{background:var(--accent)}
+.switch input:checked + .slider::before{transform:translateX(21px)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.chip{padding:8px 13px;background:var(--chip);border-radius:99px;font-size:12.5px;font-weight:600;
+  color:var(--text);cursor:pointer;border:1.5px solid transparent;transition:.15s;user-select:none}
+.chip.on{background:transparent;border-color:var(--danger);color:var(--danger);text-decoration:line-through}
+.prefs-label{font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;margin:18px 0 6px}
+.wizard-nav{display:flex;gap:10px;margin-top:22px;position:sticky;bottom:14px;z-index:5}
+.wizard-nav button{padding:16px;border-radius:14px;border:none;font-family:inherit;font-size:16px;
+  font-weight:800;cursor:pointer;transition:.15s;letter-spacing:-.2px}
+.wizard-nav .back{flex:0 0 96px;background:var(--soft);color:var(--text)}
+.wizard-nav .back.hidden{display:none}
+.wizard-nav .next{flex:1;background:linear-gradient(140deg,#12a862,#0a7a45);color:#fff;
+  box-shadow:0 6px 16px rgba(15,157,88,.3)}
+.wizard-nav button:active{transform:scale(.98)}
+
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border-radius:15px;padding:12px 14px;box-shadow:var(--shadow)}
+.stat .v{font-size:19px;font-weight:800;letter-spacing:-.4px}
+.stat .l{font-size:10.5px;color:var(--muted);margin-top:2px;text-transform:uppercase;
+  letter-spacing:.5px;font-weight:700}
+.stat.main{grid-column:1/-1;background:linear-gradient(140deg,#12a862,#0a7a45);color:#fff}
+.stat.main .l{color:rgba(255,255,255,.85)}
+.stat.main .v{font-size:26px}
+.stat.goal-stat{grid-column:1/-1;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff}
+.stat.goal-stat .l{color:rgba(255,255,255,.85)}
+.macros{display:flex;gap:12px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.macros b{color:var(--text);font-weight:800}
+.tabs{display:flex;gap:6px;background:var(--soft);padding:5px;border-radius:14px;margin-bottom:14px}
+.tab{flex:1;border:none;background:transparent;padding:11px 8px;border-radius:10px;font-size:13px;
+  font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit}
+.tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 6px rgba(16,60,40,.1)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.day{background:var(--card);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow);margin-bottom:12px}
+.day-h{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;
+  background:var(--soft);font-weight:800;font-size:15px;gap:8px;flex-wrap:wrap}
+.day-h .meta{font-size:11.5px;font-weight:700;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.day-h .meta b{color:var(--text)}
+.meal{border-top:1px solid var(--border)}
+.meal:first-of-type{border-top:none}
+.meal-head{display:flex;gap:10px;padding:10px 14px;cursor:pointer;align-items:center;transition:background .15s}
+.meal-head:active{background:var(--soft)}
+.meal-photo{width:var(--photo-size);height:var(--photo-size);border-radius:14px;flex:0 0 auto;
+  display:grid;place-items:center;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#fef3c7,#fed7aa);box-shadow:inset 0 -6px 14px rgba(0,0,0,.06);transition:box-shadow .2s}
+.meal-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.meal-photo .emo{font-size:24px;line-height:1;position:relative;z-index:1;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
+.meal-photo .emo.single{font-size:30px}
+.meal-photo.is-liked{box-shadow:inset 0 -6px 14px rgba(0,0,0,.06),0 0 0 2.5px var(--like)}
+.meal-photo.season{border:2px solid var(--season)}
+.meal-info{flex:1;min-width:0}
+.meal-type-row{display:flex;align-items:center;gap:8px;margin-bottom:1px}
+.meal-type{font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.7px}
+.meal-kcal-inline{font-size:10.5px;font-weight:700;color:var(--muted)}
+.meal-name{font-size:14px;font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.meal-sub{font-size:10.5px;color:var(--muted);margin-top:2px;font-weight:600}
+.meal-extra-hint{font-size:11px;color:var(--accent-d);margin-top:4px;font-weight:700;
+  display:flex;align-items:center;gap:4px}
+[data-theme="dark"] .meal-extra-hint{color:var(--accent)}
+.meal-extra-hint::before{content:'+';font-weight:900;opacity:.7}
+.season-badge{display:inline-block;background:var(--season);color:#fff;font-size:8.5px;font-weight:800;
+  padding:1px 5px;border-radius:4px;letter-spacing:.4px;margin-left:4px;vertical-align:middle}
+.meal-actions{display:flex;gap:4px;flex:0 0 auto;align-self:flex-start}
+.action-btn{width:30px;height:30px;border-radius:9px;border:1.5px solid var(--border);
+  background:transparent;color:var(--muted);font-size:13px;display:grid;place-items:center;
+  cursor:pointer;font-family:inherit;transition:.15s;padding:0}
+.action-btn:active{transform:scale(.9)}
+.action-btn.like.on{background:var(--like-bg);border-color:var(--like);color:var(--like)}
+.action-btn.dislike.on{background:var(--dislike-bg);border-color:var(--dislike);color:var(--dislike)}
+.meal-body{display:none;padding:0 14px 14px;font-size:13.5px;color:var(--text)}
+.meal.open .meal-body{display:block;animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.meal-body h4{margin:12px 0 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--muted);font-weight:800}
+.meal-body ul,.meal-body ol{margin:0;padding-left:18px}
+.meal-body li{margin-bottom:3px}
+.dish-section{margin-bottom:4px}
+.dish-section.extra{border-top:2px dashed var(--border);margin-top:16px;padding-top:16px}
+.dish-section.extra h4:first-of-type{color:var(--accent);margin-top:8px}
+.dish-section-title{font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;
+  letter-spacing:.6px;margin:0 0 8px;display:flex;align-items:center;gap:6px}
+.dish-section-title.main{color:var(--muted)}
+.big-photo-wrap{margin:0 -14px 12px;position:relative}
+.big-photo{height:180px;display:grid;place-items:center;font-size:64px;position:relative;
+  overflow:hidden;background:linear-gradient(135deg,#fef3c7,#fed7aa)}
+.big-photo.breakfast{background:linear-gradient(135deg,#fef9c3,#fed7aa)}
+.big-photo.lunch{background:linear-gradient(135deg,#dcfce7,#86efac)}
+.big-photo.dinner{background:linear-gradient(135deg,#dbeafe,#bfdbfe)}
+.big-photo.snack{background:linear-gradient(135deg,#fce7f3,#fbcfe8)}
+[data-theme="dark"] .big-photo.breakfast{background:linear-gradient(135deg,#78350f,#a16207)}
+[data-theme="dark"] .big-photo.lunch{background:linear-gradient(135deg,#14532d,#166534)}
+[data-theme="dark"] .big-photo.dinner{background:linear-gradient(135deg,#1e3a8a,#1d4ed8)}
+[data-theme="dark"] .big-photo.snack{background:linear-gradient(135deg,#831843,#9d174d)}
+.big-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.big-photo .emo{filter:drop-shadow(0 2px 6px rgba(0,0,0,.2));position:relative;z-index:1}
+.photo-btns{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:3}
+.photo-btns button{width:34px;height:34px;border-radius:10px;border:none;background:rgba(255,255,255,.9);
+  color:#555;font-size:15px;display:grid;place-items:center;cursor:pointer;font-family:inherit;
+  transition:.15s;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.photo-btns button:active{transform:scale(.9)}
+.photo-btns button.on.like{background:#fff;color:var(--like)}
+.photo-btns button.on.dislike{background:#fff;color:var(--dislike)}
+.cook-btn{width:100%;padding:12px;margin-top:12px;border:none;border-radius:12px;
+  background:linear-gradient(140deg,#12a862,#0a7a45);color:#fff;font-size:14.5px;font-weight:800;
+  cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 12px rgba(15,157,88,.25)}
+.cook-btn:active{transform:scale(.98)}
+.cook-btn.small{padding:9px;font-size:13px;margin-top:8px}
+.cook-btn.outline{background:transparent;color:var(--accent);border:1.5px solid var(--accent);
+  box-shadow:none}
+.portion-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:10px 12px;
+  background:var(--soft);border-radius:12px;margin-bottom:12px}
+.portion-row > span{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;margin-right:4px}
+.portion-btn{padding:6px 12px;border:1.5px solid var(--border);background:var(--card);
+  color:var(--text);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:.15s;min-width:44px}
+.portion-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.portion-hint{font-size:11px;color:var(--muted);margin-left:auto;font-weight:600}
+.cat{background:var(--card);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow);margin-bottom:12px}
+.cat-h{padding:12px 16px;font-weight:800;font-size:13.5px;background:var(--soft);
+  display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cat-h .cat-title{flex:1}
+.cat-h span{color:var(--muted);font-size:12px}
+.item{display:flex;align-items:center;gap:9px;padding:11px 14px;border-top:1px solid var(--border);
+  cursor:pointer;user-select:none;transition:.15s}
+.item:active{background:var(--soft)}
+.item .cb{width:22px;height:22px;border-radius:8px;border:2px solid var(--border);flex:0 0 auto;
+  display:grid;place-items:center;font-size:13px;color:transparent;transition:.15s;font-weight:900}
+.item.done .cb{background:var(--accent);border-color:var(--accent);color:#fff}
+.item .nm{flex:1;font-size:14px;transition:.15s;min-width:0}
+.item .qt{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
+.item .pr{font-size:13px;font-weight:800;min-width:56px;text-align:right}
+.item.done .nm{text-decoration:line-through;color:var(--muted)}
+.item.done .qt,.item.done .pr{opacity:.5}
+.item .src{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.3px;margin-top:2px}
+.item .season-tag{font-size:9.5px;font-weight:800;color:var(--season);background:var(--season-bg);
+  padding:1px 6px;border-radius:5px;display:inline-block;margin-top:3px}
+.item .search-btn{width:32px;height:32px;border-radius:10px;flex:0 0 auto;
+  background:var(--delivery-bg);border:1.5px solid var(--delivery);color:var(--delivery);
+  font-size:14px;padding:0;display:grid;place-items:center;cursor:pointer;font-family:inherit;transition:.15s}
+.item .search-btn:active{transform:scale(.88)}
+.search-wrap{position:relative;margin-bottom:12px}
+.search-wrap input{padding-left:40px;font-weight:600;font-size:15px;width:100%;
+  padding:13px 14px 13px 40px;border:1.5px solid var(--border);border-radius:13px;
+  background:var(--bg);color:var(--text);outline:none;font-family:inherit;transition:.15s}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-wrap::before{content:'🔍';position:absolute;left:14px;top:50%;transform:translateY(-30%);
+  font-size:15px;pointer-events:none}
+.actions{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.actions button{flex:1;min-width:calc(50% - 4px);padding:12px;border:1.5px solid var(--border);
+  background:var(--card);color:var(--text);border-radius:13px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:.15s}
+.actions button:active{transform:scale(.97);border-color:var(--accent)}
+.actions button.full{flex:1 1 100%}
+.total{background:var(--card);border-radius:var(--radius);padding:16px;display:flex;
+  justify-content:space-between;align-items:center;box-shadow:var(--shadow);
+  font-weight:800;font-size:15px;margin-bottom:12px}
+.total .big{font-size:22px;color:var(--accent-d)}
+[data-theme="dark"] .total .big{color:var(--accent)}
+.warn{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:13px 15px;
+  border-radius:14px;font-size:13.5px;margin-bottom:14px;font-weight:600}
+[data-theme="dark"] .warn{background:#2a1a0f;border-color:#5c3218;color:#fdba74}
+.tip{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:12px 14px;
+  border-radius:14px;font-size:13px;margin-bottom:10px;font-weight:600}
+[data-theme="dark"] .tip{background:#052e22;border-color:#065f46;color:#6ee7b7}
+.tip .save-badge{display:inline-block;background:#10b981;color:#fff;padding:2px 8px;
+  border-radius:8px;font-size:11px;font-weight:800;margin-left:6px;vertical-align:middle}
+.tip button{margin-top:8px;padding:8px 14px;border:none;border-radius:9px;background:#10b981;
+  color:#fff;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit}
+.note{font-size:11.5px;color:var(--muted);text-align:center;padding:0 20px 20px;line-height:1.5}
+.totals-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);
+  border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin-bottom:14px}
+.totals-table th,.totals-table td{padding:11px 10px;text-align:right;
+  border-bottom:1px solid var(--border)}
+.totals-table th{background:var(--soft);font-size:10.5px;font-weight:800;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;text-align:right}
+.totals-table th:first-child,.totals-table td:first-child{text-align:left;padding-left:16px}
+.totals-table td:last-child{padding-right:16px}
+.totals-table tr:last-child td{border-bottom:none;font-weight:800;background:var(--soft)}
+.bar-list{background:var(--card);border-radius:var(--radius);padding:16px;
+  box-shadow:var(--shadow);margin-bottom:14px}
+.bar-list h3{margin:0 0 12px;font-size:13px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--muted)}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.bar-row .lbl{flex:0 0 60px;font-weight:700;color:var(--muted);font-size:11px}
+.bar-row .bar{flex:1;height:16px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar-row .fill{height:100%;background:linear-gradient(90deg,#12a862,#0a7a45);
+  border-radius:99px;transition:width .4s ease;min-width:4px}
+.bar-row .val{flex:0 0 60px;text-align:right;font-weight:800;font-size:12px}
+.bar-list .avg{color:var(--accent);font-weight:800}
+.legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:11px;
+  color:var(--muted);font-weight:700;margin-top:8px}
+.legend span::before{content:'●';margin-right:4px}
+.legend .p::before{color:#3b82f6} .legend .f::before{color:#f59e0b} .legend .c::before{color:#22c55e}
+.compare-row{display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1px solid var(--border);font-size:13px}
+.compare-row:last-child{border-bottom:none}
+.compare-row .cs{flex:0 0 90px;font-weight:700}
+.compare-row .cb{flex:1;height:20px;background:var(--soft);border-radius:99px;overflow:hidden}
+.compare-row .cf{height:100%;border-radius:99px;transition:width .4s}
+.compare-row .cv{flex:0 0 70px;text-align:right;font-weight:800;font-size:12.5px}
+.compare-row.best .cs,.compare-row.best .cv{color:var(--accent)}
+.compare-row.best::after{content:'★';color:var(--accent);font-size:11px;margin-left:2px}
+.modal-backdrop,.sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;
+  pointer-events:none;transition:opacity .22s;z-index:60;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.modal-backdrop.open,.sheet-backdrop.open{opacity:1;pointer-events:auto}
+.modal{position:fixed;left:0;right:0;bottom:0;top:5vh;background:var(--card);
+  border-radius:22px 22px 0 0;z-index:61;transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;
+  overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+.modal.open{transform:translateY(0)}
+.modal-head{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);flex:0 0 auto;gap:10px}
+.modal-head h2{margin:0;font-size:17px;font-weight:800;letter-spacing:-.3px}
+.modal-close{width:34px;height:34px;border-radius:11px;border:none;background:var(--soft);
+  color:var(--text);font-size:18px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
+.modal-body{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.modal-foot{padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid var(--border);display:flex;gap:8px;flex:0 0 auto}
+.modal-foot button{flex:1;padding:13px;border-radius:13px;font-family:inherit;font-weight:800;
+  font-size:15px;cursor:pointer;transition:.15s}
+.modal-foot .cancel{border:1.5px solid var(--border);background:var(--card);color:var(--text)}
+.ing-row{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;
+  background:var(--soft);border-radius:11px;margin-bottom:6px;font-size:13.5px;gap:8px}
+.ing-row .nm{flex:1;font-weight:600}
+.ing-row .qt{color:var(--muted);font-weight:700;font-size:12px;white-space:nowrap}
+.ing-row .rm{background:transparent;border:none;color:var(--danger);cursor:pointer;
+  font-size:16px;padding:2px 6px;font-weight:800;font-family:inherit}
+.add-ing{display:grid;grid-template-columns:1fr 80px 44px;gap:8px;margin-top:8px;align-items:start}
+.add-ing select,.add-ing input{margin-top:0;padding:10px 10px;font-size:14px;font-weight:600;
+  border:1.5px solid var(--border);border-radius:11px;background:var(--bg);color:var(--text);font-family:inherit}
+.add-ing button{border:none;background:var(--accent);color:#fff;border-radius:11px;font-size:20px;
+  font-weight:800;cursor:pointer;font-family:inherit;aspect-ratio:1;padding:0}
+.my-recipe{padding:12px 14px;border:1.5px solid var(--border);border-radius:13px;margin-bottom:8px;
+  display:flex;justify-content:space-between;gap:10px;align-items:center}
+.my-recipe .info{flex:1;min-width:0}
+.my-recipe .info .n{font-weight:700;font-size:14px}
+.my-recipe .info .s{font-size:11.5px;color:var(--muted);margin-top:3px;font-weight:600}
+.my-recipe .del{border:none;background:transparent;color:var(--danger);cursor:pointer;
+  font-size:18px;padding:4px 8px;font-family:inherit}
+.section-title{font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;margin:18px 0 8px}
+details.catalog-section{border-top:1px solid var(--border);margin-top:16px;padding-top:12px}
+details.catalog-section summary{font-size:13px;font-weight:700;color:var(--accent);
+  cursor:pointer;list-style:none;padding:4px 0;user-select:none}
+details.catalog-section summary::-webkit-details-marker{display:none}
+details.catalog-section summary::after{content:' ▾';font-size:11px;color:var(--muted)}
+details.catalog-section[open] summary::after{content:' ▴'}
+.catalog-filter{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.catalog-filter button{padding:7px 12px;border-radius:99px;border:1.5px solid var(--border);
+  background:var(--bg);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.catalog-filter button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.catalog-sort{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;font-size:11px}
+.catalog-sort span{font-weight:800;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;align-self:center;margin-right:4px}
+.catalog-sort button{padding:5px 10px;border-radius:99px;border:1.5px solid var(--border);
+  background:transparent;color:var(--muted);font-size:11px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:.15s}
+.catalog-sort button.active{background:var(--soft);border-color:var(--accent);color:var(--accent)}
+.catalog-item{display:flex;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)}
+.catalog-item:last-child{border-bottom:none}
+.catalog-item .ci-photo{width:44px;height:44px;border-radius:11px;flex:0 0 auto;
+  display:grid;place-items:center;font-size:17px;background:linear-gradient(135deg,#fef3c7,#fed7aa);
+  position:relative;overflow:hidden}
+.catalog-item .ci-photo img{width:100%;height:100%;object-fit:cover}
+.catalog-item .ci-photo.is-liked{box-shadow:0 0 0 2px var(--like)}
+.catalog-item .ci-info{flex:1;min-width:0}
+.catalog-item .ci-name{font-size:13px;font-weight:600;line-height:1.3;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.catalog-item .ci-sub{font-size:10.5px;color:var(--muted);margin-top:2px;font-weight:600}
+.catalog-item .ci-btns{display:flex;gap:4px;flex:0 0 auto}
+.catalog-item .ci-btns .action-btn{width:30px;height:30px;font-size:12px}
+.photo-picker{background:var(--soft);border-radius:14px;padding:14px;margin-bottom:12px}
+.photo-picker h4{margin:0 0 10px;font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--muted);font-weight:800}
+.photo-picker .preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.photo-picker .preset-item{aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;
+  border:2px solid transparent;transition:.15s;background:var(--card);
+  display:grid;place-items:center;font-size:28px;position:relative}
+.photo-picker .preset-item img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-picker .preset-item.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-d)}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card);
+  border-radius:22px 22px 0 0;padding:10px 16px 24px;z-index:51;transform:translateY(100%);
+  transition:transform .28s cubic-bezier(.32,.72,0,1);max-height:80vh;display:flex;
+  flex-direction:column;box-shadow:0 -8px 30px rgba(0,0,0,.18);
+  padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 12px}
+.sheet-title{font-size:17px;font-weight:800;margin-bottom:14px;letter-spacing:-.3px}
+.sheet-list{overflow-y:auto;flex:1;margin:0 -16px;padding:0 16px}
+.alt{padding:10px 12px;border:1.5px solid var(--border);border-radius:14px;margin-bottom:8px;
+  cursor:pointer;transition:.15s;display:flex;gap:10px;align-items:center}
+.alt:active{background:var(--soft);border-color:var(--accent)}
+.alt .alt-photo{width:44px;height:44px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;
+  font-size:18px;position:relative;overflow:hidden;background:linear-gradient(135deg,#fef3c7,#fed7aa)}
+.alt .alt-photo img{width:100%;height:100%;object-fit:cover}
+.alt .an{font-size:13.5px;font-weight:600;flex:1;line-height:1.3}
+.alt .am{font-size:11px;color:var(--muted);font-weight:700;text-align:right;white-space:nowrap}
+.alt.is-liked{border-color:var(--like)}
+.sheet-cancel{margin-top:12px;padding:14px;border:none;background:var(--soft);color:var(--text);
+  border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.no-alt{text-align:center;padding:24px;color:var(--muted);font-size:14px}
+.pyaterochka-hint{background:linear-gradient(135deg,#fff1f2,#ffe4e6);
+  border:1.5px solid var(--delivery);color:#9f1239;padding:14px;border-radius:14px;
+  font-size:13px;margin-bottom:16px;font-weight:600;line-height:1.5}
+[data-theme="dark"] .pyaterochka-hint{background:linear-gradient(135deg,#3d1015,#4c1520);
+  border-color:#9f1239;color:#fda4af}
+.search-group{background:var(--soft);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.search-group h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--muted);font-weight:800}
+.search-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);
+  text-decoration:none;color:var(--text);transition:.15s;cursor:pointer}
+.search-item:last-child{border-bottom:none}
+.search-item .sname{flex:1;font-size:13.5px;font-weight:600;line-height:1.3}
+.search-item .sqty{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap}
+.search-item .sarrow{color:var(--delivery);font-size:16px;font-weight:800}
+.open-all-btn{width:100%;padding:12px;margin-bottom:12px;border:none;border-radius:12px;
+  background:linear-gradient(140deg,#e11d48,#be123c);color:#fff;font-size:14px;font-weight:800;
+  cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(225,29,72,.3)}
+.cook-modal{position:fixed;inset:0;background:var(--card);z-index:70;transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;
+  overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+.cook-modal.open{transform:translateY(0)}
+.cook-head{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);flex:0 0 auto;gap:10px}
+.cook-head .info{flex:1;min-width:0}
+.cook-head .info h2{margin:0;font-size:16px;font-weight:800;letter-spacing:-.3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cook-head .info .sub{font-size:11.5px;color:var(--muted);margin-top:2px;font-weight:600}
+.cook-close{width:36px;height:36px;border-radius:11px;border:none;background:var(--soft);
+  color:var(--text);font-size:18px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
+.cook-body{flex:1;overflow-y:auto;padding:0}
+.cook-photo{height:200px;display:grid;place-items:center;font-size:76px;position:relative;
+  overflow:hidden;background:linear-gradient(135deg,#fef3c7,#fed7aa)}
+.cook-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.cook-photo .emo{filter:drop-shadow(0 3px 10px rgba(0,0,0,.15));position:relative;z-index:1}
+.cook-progress{display:flex;gap:5px;padding:14px 16px 0;flex:0 0 auto}
+.cook-progress .dot{flex:1;height:5px;background:var(--soft);border-radius:99px;transition:background .2s}
+.cook-progress .dot.done{background:var(--accent)}
+.cook-progress .dot.current{background:linear-gradient(90deg,var(--accent),var(--accent-d))}
+.cook-content{padding:16px}
+.cook-step-num{font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;
+  letter-spacing:.7px;margin-bottom:6px}
+.cook-step-text{font-size:19px;font-weight:600;line-height:1.4;letter-spacing:-.2px;margin-bottom:16px}
+.cook-timer{background:var(--soft);border-radius:14px;padding:14px 16px;display:flex;
+  align-items:center;gap:12px;margin-bottom:16px}
+.cook-timer .clock{font-size:32px;font-weight:800;letter-spacing:-1px;
+  font-variant-numeric:tabular-nums;flex:1}
+.cook-timer .clock.running{color:var(--accent)}
+.cook-timer button{padding:10px 16px;border:none;border-radius:11px;font-size:13px;font-weight:800;
+  cursor:pointer;font-family:inherit;background:var(--accent);color:#fff;transition:.15s}
+.cook-ing-h{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:6px}
+.cook-ing-list{list-style:none;padding:0;margin:0 0 16px}
+.cook-ing-list li{padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;
+  display:flex;justify-content:space-between}
+.cook-ing-list li:last-child{border-bottom:none}
+.cook-ing-list .iq{color:var(--muted);font-weight:700;font-size:12.5px}
+.cook-foot{padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid var(--border);display:flex;gap:8px;flex:0 0 auto}
+.cook-foot button{flex:1;padding:14px;border-radius:13px;font-family:inherit;font-weight:800;
+  font-size:15px;cursor:pointer;transition:.15s;border:none}
+.cook-foot .prev{background:var(--soft);color:var(--text);flex:0 0 45%}
+.cook-foot .next{background:linear-gradient(140deg,#12a862,#0a7a45);color:#fff;
+  box-shadow:0 4px 12px rgba(15,157,88,.3)}
+.cook-foot button:disabled{opacity:.4;cursor:not-allowed}
+.tracker-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}
+.tracker-day{aspect-ratio:1;border-radius:10px;background:var(--soft);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;cursor:pointer;
+  transition:.15s;border:1.5px solid transparent;padding:2px}
+.tracker-day .dn{font-size:10px;font-weight:800;color:var(--muted)}
+.tracker-day .dv{font-size:12px;font-weight:800;margin-top:1px}
+.tracker-day.eaten{background:linear-gradient(140deg,#12a862,#0a7a45);color:#fff}
+.tracker-day.eaten .dn{color:rgba(255,255,255,.85)}
+.tracker-day.today{border-color:var(--accent)}
+.streak-badge{display:inline-flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;padding:8px 14px;
+  border-radius:12px;font-weight:800;font-size:14px}
+.streak-badge .num{font-size:22px}
+.pwa-banner{background:linear-gradient(135deg,#10b981,#059669);color:#fff;
+  border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.pwa-banner .icon{font-size:28px;flex:0 0 auto}
+.pwa-banner .body{flex:1;min-width:0}
+.pwa-banner .body .t{font-size:14px;font-weight:800;margin-bottom:2px}
+.pwa-banner .body .d{font-size:11.5px;opacity:.9;font-weight:600}
+.pwa-banner button{padding:8px 14px;border:none;border-radius:10px;background:#fff;
+  color:#059669;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;flex:0 0 auto}
+.delivery-banner{background:linear-gradient(135deg,#e11d48,#be123c);color:#fff;
+  border-radius:14px;padding:16px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.delivery-banner .icon{font-size:28px;flex:0 0 auto}
+.delivery-banner .body{flex:1;min-width:0}
+.delivery-banner .body .t{font-size:14.5px;font-weight:800;margin-bottom:2px}
+.delivery-banner .body .d{font-size:11.5px;opacity:.9;font-weight:600}
+.delivery-banner button{padding:10px 16px;border:none;border-radius:10px;background:#fff;
+  color:#e11d48;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;flex:0 0 auto}
+@media print{
+  body{background:#fff;color:#000;padding:0;font-size:11pt}
+  .app-header,.wizard-nav,.tabs,.actions,.search-wrap,.sheet-backdrop,.action-btn,
+  .modal-backdrop,.header-btns,.summary,.portion-row,.day-h .meta,.meal-photo,
+  .cook-btn,.pwa-banner,.cook-modal,.meal-actions,.tracker-grid,
+  .presets-grid,.delivery-banner,.photo-btns,.search-btn,.wizard-progress{
+    display:none !important}
+  .item .pr{color:#000}
+  .card,.cat,.day{box-shadow:none;border:1px solid #ddd;page-break-inside:avoid}
+  .tab-panel:not(.active){display:none !important}
+  .meal-body{display:block !important}
+  .big-photo{max-height:120px}
+  .big-photo img{max-height:120px;object-fit:cover}
+  main{margin-top:0}
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="row">
+    <div>
+      <h1><span class="logo">🥗</span> Питание по бюджету</h1>
+      <p id="header-sub">Шаг 1 · Бюджет и компания</p>
+    </div>
+    <div class="header-btns">
+      <button class="header-btn hidden" id="back-btn" aria-label="Назад">←</button>
+      <button class="header-btn" id="theme-toggle" aria-label="Тема">🌙</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <div class="wizard-progress" id="wizard-progress">
+    <div class="p-dot current" data-pdot="1"></div>
+    <div class="p-dot" data-pdot="2"></div>
+    <div class="p-dot" data-pdot="3"></div>
+    <div class="p-dot" data-pdot="4"></div>
+    <div class="p-dot" data-pdot="5"></div>
+    <div class="p-dot" data-pdot="6"></div>
+  </div>
+
+  <!-- ШАГ 1 -->
+  <section class="wizard-step active" data-step="1">
+    <h2>Сколько у вас денег?</h2>
+    <p class="step-sub">Укажите бюджет и количество человек — подберём меню</p>
+    <div class="big-input">
+      <div class="bi-info"><div class="bi-label">Бюджет</div>
+        <div class="bi-hint">На весь период</div></div>
+      <div class="bi-controls">
+        <button class="step-btn" data-step-target="budget" data-delta="-500">−</button>
+        <input type="number" id="budget" value="5000" min="200" step="100" inputmode="numeric">
+        <button class="step-btn" data-step-target="budget" data-delta="500">+</button>
+      </div>
+    </div>
+    <div class="big-input">
+      <div class="bi-info"><div class="bi-label">Дней</div>
+        <div class="bi-hint">На сколько планировать</div></div>
+      <div class="bi-controls">
+        <button class="step-btn" data-step-target="days" data-delta="-1">−</button>
+        <input type="number" id="days" value="7" min="1" max="30" inputmode="numeric">
+        <button class="step-btn" data-step-target="days" data-delta="1">+</button>
+      </div>
+    </div>
+    <div class="big-input">
+      <div class="bi-info"><div class="bi-label">Человек</div>
+        <div class="bi-hint">Сколько вас ест</div></div>
+      <div class="bi-controls">
+        <button class="step-btn" data-step-target="people" data-delta="-1">−</button>
+        <input type="number" id="people" value="2" min="1" max="10" inputmode="numeric">
+        <button class="step-btn" data-step-target="people" data-delta="1">+</button>
+      </div>
+    </div>
+    <div class="prefs-label" style="margin-top:22px">Быстрый выбор</div>
+    <div class="presets-grid" id="budget-presets"></div>
+    <div class="wizard-nav">
+      <button class="back hidden"></button>
+      <button class="next" data-go="2">Далее →</button>
+    </div>
+  </section>
+
+  <!-- ШАГ 2: ЦЕЛЬ -->
+  <section class="wizard-step" data-step="2">
+    <h2>Какая у вас цель?</h2>
+    <p class="step-sub">Подберём калории и состав блюд под вашу цель</p>
+    <div class="goal-list" id="goal-list">
+      <button class="goal-card" data-goal="maintain">
+        <div class="goal-icon">🥗</div>
+        <div class="goal-info">
+          <div class="goal-name">Правильное питание</div>
+          <div class="goal-desc">Сбалансированное меню без цели похудеть · ~2000 ккал в день</div>
+        </div>
+        <div class="goal-check">✓</div>
+      </button>
+      <button class="goal-card" data-goal="lose">
+        <div class="goal-icon">⚖️</div>
+        <div class="goal-info">
+          <div class="goal-name">Похудение</div>
+          <div class="goal-desc">Дефицит калорий с сохранением сытости · ~1600 ккал в день</div>
+        </div>
+        <div class="goal-check">✓</div>
+      </button>
+      <button class="goal-card" data-goal="calories">
+        <div class="goal-icon">🎯</div>
+        <div class="goal-info">
+          <div class="goal-name">По калориям</div>
+          <div class="goal-desc">Свой целевой калораж — укажу ниже</div>
+        </div>
+        <div class="goal-check">✓</div>
+      </button>
+    </div>
+    <div id="custom-kcal-wrap" style="display:none">
+      <label>Целевой калораж в день (на человека)</label>
+      <input type="number" id="custom-kcal" value="1800" min="1000" max="4000" step="50" inputmode="numeric">
+    </div>
+    <div class="wizard-nav">
+      <button class="back" data-go="1">← Назад</button>
+      <button class="next" data-go="3">Далее →</button>
+    </div>
+  </section>
+
+  <!-- ШАГ 3: МАГАЗИН -->
+  <section class="wizard-step" data-step="3">
+    <h2>Где покупаете?</h2>
+    <p class="step-sub">Цены и корзина будут рассчитаны для выбранного магазина</p>
+    <div id="store-list"></div>
+    <div class="wizard-nav">
+      <button class="back" data-go="2">← Назад</button>
+      <button class="next" data-go="4">Далее →</button>
+    </div>
+  </section>
+
+  <!-- ШАГ 4: СВАЙП -->
+  <section class="wizard-step" data-step="4">
+    <h2>Что вам нравится?</h2>
+    <p class="step-sub">Свайпайте: вправо ❤️ нравится, влево 👎 не нравится</p>
+    <div class="swipe-filter" id="swipe-filter">
+      <button data-swipe-filter="all" class="active">Все</button>
+      <button data-swipe-filter="breakfast">Завтрак</button>
+      <button data-swipe-filter="lunch">Обед</button>
+      <button data-swipe-filter="dinner">Ужин</button>
+      <button data-swipe-filter="snack">Перекус</button>
+    </div>
+    <div class="swipe-progress">
+      <div class="sp-counter" id="swipe-counter">0 из 0</div>
+      <div class="sp-hint">❤️ → нравится · 👎 ← не нравится</div>
+    </div>
+    <div class="swipe-wrap" id="swipe-wrap">
+      <div class="swipe-stage" id="swipe-stage"></div>
+    </div>
+    <div class="swipe-btns">
+      <button class="swipe-btn small undo" id="swipe-undo" disabled title="Отменить">↺</button>
+      <button class="swipe-btn dislike" id="swipe-dislike" title="Не нравится">👎</button>
+      <button class="swipe-btn like" id="swipe-like" title="Нравится">❤️</button>
+    </div>
+    <div class="wizard-nav">
+      <button class="back" data-go="3">← Назад</button>
+      <button class="next" data-go="5">Далее →</button>
+    </div>
+  </section>
+
+  <!-- ШАГ 5: ПРЕДПОЧТЕНИЯ -->
+  <section class="wizard-step" data-step="5">
+    <h2>Ещё немного о вас</h2>
+    <p class="step-sub">Учтём аллергии, сезонность и покажем фото</p>
+    <div class="switch-row">
+      <div class="sr-text"><div class="sr-title">🥦 Вегетарианское меню</div>
+        <div class="sr-hint">Без мяса, рыбы и птицы</div></div>
+      <label class="switch"><input type="checkbox" id="veg"><span class="slider"></span></label>
+    </div>
+    <div class="switch-row">
+      <div class="sr-text"><div class="sr-title">🍽 Два блюда на обед и ужин</div>
+        <div class="sr-hint">Основное блюдо + суп или салат</div></div>
+      <label class="switch"><input type="checkbox" id="multiDish" checked><span class="slider"></span></label>
+    </div>
+    <div class="switch-row">
+      <div class="sr-text"><div class="sr-title">🌍 Сезонные продукты</div>
+        <div class="sr-hint">Приоритет овощам и фруктам в сезоне</div></div>
+      <label class="switch"><input type="checkbox" id="seasonal" checked><span class="slider"></span></label>
+    </div>
+    <div class="switch-row">
+      <div class="sr-text"><div class="sr-title">📸 Показывать фото</div>
+        <div class="sr-hint">Реальные фотографии блюд</div></div>
+      <label class="switch"><input type="checkbox" id="showPhotos" checked><span class="slider"></span></label>
+    </div>
+    <div class="prefs-label">Исключить продукты (аллергии, нелюбимые)</div>
+    <div class="chips" id="exclude-chips"></div>
+    <div class="wizard-nav">
+      <button class="back" data-go="4">← Назад</button>
+      <button class="next" data-go="6">Составить план →</button>
+    </div>
+  </section>
+
+  <!-- ШАГ 6: РЕЗУЛЬТАТ -->
+  <section class="wizard-step" data-step="6">
+    <div id="out">
+      <div style="text-align:center;padding:40px 20px;color:var(--muted)">
+        <div style="font-size:40px;margin-bottom:12px">🍽</div>
+        <div style="font-weight:700">Готовим меню…</div>
+      </div>
+    </div>
+    <div class="wizard-nav">
+      <button class="back" data-go="5">← Изменить</button>
+      <button class="next" id="new-plan-btn">Начать заново</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="sheet-backdrop" id="sheet-backdrop">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheet-title">Заменить блюдо</div>
+    <div class="sheet-list" id="sheet-list"></div>
+    <button class="sheet-cancel" id="sheet-cancel">Отмена</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal-recipes">
+    <div class="modal-head">
+      <h2 id="modal-title">Рецепты и предпочтения</h2>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot">
+      <button class="cancel" id="modal-cancel">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div class="cook-modal" id="cook-modal">
+  <div class="cook-head">
+    <div class="info"><h2 id="cook-title">Рецепт</h2>
+      <div class="sub" id="cook-sub"></div></div>
+    <button class="cook-close" id="cook-close">✕</button>
+  </div>
+  <div class="cook-body" id="cook-body"></div>
+  <div class="cook-foot">
+    <button class="prev" id="cook-prev">← Назад</button>
+    <button class="next" id="cook-next">Далее →</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ПЯТЁРОЧКА (диплинк в приложение)
+   ============================================================ */
+const PYATEROCHKA_BASE = 'https://5ka.ru';
+const PYATEROCHKA_PACKAGE = 'com.x5.pyaterochka';
+const PYATEROCHKA_SCHEME = 'pyaterochka';
+function isAndroid(){ return /Android/i.test(navigator.userAgent); }
+function isIOS(){ return /iPhone|iPad|iPod/i.test(navigator.userAgent); }
+function cleanSearchQuery(productName){
+  return productName.replace(/\s*\(.*?\)/g, '').replace(/\s*\/.*$/g, '').replace(/\s{2,}/g, ' ').trim();
+}
+function openInPyaterochkaApp(appPath, webUrl){
+  if (isAndroid()){
+    window.location.href = 'intent://' + appPath + '#Intent;scheme=' + PYATEROCHKA_SCHEME +
+      ';package=' + PYATEROCHKA_PACKAGE + ';S.browser_fallback_url=' + encodeURIComponent(webUrl) + ';end';
+    return;
+  }
+  if (isIOS()){
+    const appUrl = PYATEROCHKA_SCHEME + '://' + appPath;
+    let didHide = false;
+    const onVis = () => { if (document.hidden) didHide = true; };
+    document.addEventListener('visibilitychange', onVis);
+    window.location.href = appUrl;
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', onVis);
+      if (!didHide && !document.hidden) window.location.href = webUrl;
+    }, 1500);
+    return;
+  }
+  window.open(webUrl, '_blank');
+}
+function openProductInPyaterochka(productKey){
+  const name = PRODUCTS[productKey].name;
+  const query = cleanSearchQuery(name);
+  openInPyaterochkaApp('search?text=' + encodeURIComponent(query),
+    PYATEROCHKA_BASE + '/search?text=' + encodeURIComponent(query));
+}
+function openPyaterochkaCart(){ openInPyaterochkaApp('cart', PYATEROCHKA_BASE + '/cart'); }
+function openProductsSearchModal(){
+  const shopItems = buildShopList();
+  if (shopItems.length === 0){ alert('Сначала составьте план'); return; }
+  state.modalMode = 'products';
+  document.getElementById('modal-title').textContent = '🔍 Поиск в Пятёрочке';
+  const body = document.getElementById('modal-body');
+  const grouped = {};
+  shopItems.forEach(it => {
+    const c = PRODUCTS[it.k].cat;
+    (grouped[c] = grouped[c] || []).push(it);
+  });
+  let groupsHTML = '';
+  CAT_ORDER.forEach(c => {
+    if (!grouped[c]) return;
+    const items = grouped[c].sort((a,b) => b.cost - a.cost);
+    groupsHTML += '<div class="search-group"><h4>' + CATS[c].name + '</h4>' +
+      items.map(it => '<a class="search-item" data-search-product="' + it.k + '" href="#">' +
+        '<div class="sname">' + PRODUCTS[it.k].name + '</div>' +
+        '<div class="sqty">' + fmtQty(it.k, it.q) + '</div>' +
+        '<div class="sarrow">↗</div></a>').join('') + '</div>';
+  });
+  body.innerHTML =
+    '<div class="pyaterochka-hint">ℹ️ Нажмите на продукт — откроется <b>приложение Пятёрочки</b> с поиском.</div>' +
+    '<button class="open-all-btn" id="open-cart-btn">🚚 Открыть корзину</button>' + groupsHTML +
+    '<div class="section-title" style="text-align:center;margin-top:20px">Всего: ' + shopItems.length + '</div>';
+  document.getElementById('modal-backdrop').classList.add('open');
+  document.getElementById('modal-recipes').classList.add('open');
+  const cb = document.getElementById('open-cart-btn');
+  if (cb) cb.addEventListener('click', openPyaterochkaCart);
+  body.querySelectorAll('[data-search-product]').forEach(el => {
+    el.addEventListener('click', ev => {
+      ev.preventDefault();
+      openProductInPyaterochka(el.dataset.searchProduct);
+    });
+  });
+}
+
+/* ============================================================
+   ФОТО
+   ============================================================ */
+const PHOTO_CACHE_KEY = 'mealplanner.photos.v4';
+const USER_PHOTOS_KEY = 'mealplanner.userphotos.v1';
+const photoCache = {};
+const userPhotos = {};
+
+const BUILTIN_PHOTOS = {
+  'r0':'https://onetable.ru/upload/resize_cache/iblock/4b4/1000_1000_1/4b4d7c9a2f3e1b6a8c5d9e0f2a7b4c3d.jpg',
+  'r1':'https://www.iamcook.ru/wp-content/uploads/2023/10/omlet-s-pomidorami-i-zelenyu.jpg',
+  'r2':'https://www.iamcook.ru/wp-content/uploads/2023/11/tvorog-s-yablokom-i-medom.jpg',
+  'r3':'https://onetable.ru/upload/resize_cache/iblock/8a2/1000_1000_1/8a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d.jpg',
+  'r4':'https://www.iamcook.ru/wp-content/uploads/2025/08/yaichnitsa-s-adygeyskim-syrom-i-pomidorami.jpg',
+  'r5':'https://food.ru/upload/recipes/2025/02/16/bananovo-klubnichnyy-smuzi-iz-kefira-s-tvorozhkom.jpg',
+  'r6':'https://onetable.ru/upload/resize_cache/iblock/9e5/1000_1000_1/9e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b.jpg',
+  'r7':'https://www.iamcook.ru/wp-content/uploads/2014/04/syrniki-v-duhovke-so-smetanoy.jpg',
+  'r8':'https://www.russianfood.com/recipes/recipe_images/risovaya-kasha-s-yablokami-i-koritsey.jpg',
+  'r9':'https://www.iamcook.ru/wp-content/uploads/2023/06/tosty-s-avokado-i-yaytsom.jpg',
+  'r10':'https://onetable.ru/upload/resize_cache/iblock/7c3/1000_1000_1/7c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f.jpg',
+  'r11':'https://food.ru/upload/recipes/2025/08/29/yogurt-s-mindalem-i-yagodami.jpg',
+  'r12':'https://www.russianfood.com/recipes/recipe_images/omlet-so-shpinatom-i-syrom.jpg',
+  'r13':'https://ovkuse.ru/uploads/recipes/buterbrody-s-tvorozhnym-syrom.jpg',
+  'r14':'https://ovkuse.ru/uploads/recipes/kurinoe-file-s-grechkoy-i-ovoshchami.jpg',
+  'r15':'https://ovkuse.ru/uploads/recipes/ovoshchnoy-supchik-s-kurochkoy.jpg',
+  'r16':'https://www.iamcook.ru/wp-content/uploads/2014/07/zapekanka-iz-semgi-risa-i-brokkoli.jpg',
+  'r17':'https://food.ru/upload/recipes/2025/02/09/makarony-s-kuritsey-v-tomatnom-souse.jpg',
+  'r18':'https://www.russianfood.com/recipes/recipe_images/borshch-postnyy-s-fasolyu.jpg',
+  'r19':'https://ovkuse.ru/uploads/recipes/salat-s-yaytsom-i-syrom.jpg',
+  'r20':'https://shnyagi.net/uploads/posts/2024-04/1713514567_tovuk-palov-ili-plov-s-kuritsey.jpg',
+  'r21':'https://ovkuse.ru/uploads/recipes/grechka-s-ovoshchami-i-kuritsey.jpg',
+  'r22':'https://www.iamcook.ru/wp-content/uploads/2024/12/postnyy-sup-pyure-iz-tykvy.jpg',
+  'r23':'https://www.iamcook.ru/wp-content/uploads/2022/01/kurinyy-sup-s-zharenoy-vermishelyu.jpg',
+  'r24':'https://food.ru/upload/recipes/2023/08/12/indeyka-s-risom-i-ovoshchami.jpg',
+  'r25':'https://cookingman.ru/wp-content/uploads/2020/06/shchi-iz-svezhey-kapusty.jpg',
+  'r26':'https://ovkuse.ru/uploads/recipes/fasolevyy-salat-s-krasnoy-slabosolionoy-gorbushey.jpg',
+  'r27':'https://food.ru/upload/recipes/2025/08/05/pyure-s-kurinymi-kotletami.jpg',
+  'r28':'https://mir-stone.by/uploads/posts/2023-01/grechka-s-gribami.jpg',
+  'r29':'https://ovkuse.ru/uploads/recipes/ryba-s-ovoshchami-v-duhovke.jpg',
+  'r30':'https://www.iamcook.ru/wp-content/uploads/2024/04/kurinoe-file-bedra-s-kartoshkoy-v-duhovke.jpg',
+  'r31':'https://kartavkusa.ru/uploads/tushenye-ovoshchi-s-fasolyu.jpg',
+  'r32':'https://ovkuse.ru/uploads/recipes/zapekanka-tvorozhnaya-s-kusochkami-yabloka.jpg',
+  'r33':'https://www.iamcook.ru/wp-content/uploads/2024/03/omlet-s-brokkoli-i-syrom-na-skovorode.jpg',
+  'r34':'https://www.iamcook.ru/wp-content/uploads/2026/10/salat-s-kuritsey-i-kvashenoy-kapustoy.jpg',
+  'r35':'https://www.iamcook.ru/wp-content/uploads/2013/04/ragu-iz-kuritsy-s-ovoshchami.jpg',
+  'r36':'https://ovkuse.ru/uploads/recipes/kotlety-grechka-indeyka.jpg',
+  'r37':'https://blogkulinar.ru/uploads/posts/2020-05/1589876543_kartofelnaya-zapekanka-s-farshem.jpg',
+  'r38':'https://ovkuse.ru/uploads/recipes/kotletki-rybnye-s-podlivkoy-i-pyureshkoy.jpg',
+  'r39':'https://www.iamcook.ru/wp-content/uploads/2016/07/tushenaya-kapusta-s-kuritsey.jpg',
+  'r40':'https://food.ru/upload/recipes/2023/06/18/grechka-po-kupecheski-s-lukom-i-morkovyu.jpg',
+  'r41':'https://ovkuse.ru/uploads/recipes/ovoshchnoe-ragu-v-kabachkakh.jpg',
+  'r42':'https://foto.mmenu.com/photos/514456.jpg',
+  'r43':'https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'r44':'https://images.pexels.com/photos/1435735/pexels-photo-1435735.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'r45':'https://ovkuse.ru/uploads/recipes/yablochno-morkovnyy-salat.jpg',
+  'r46':'https://ovkuse.ru/uploads/recipes/tvorog-s-zelenyu-i-chesnokom.jpg',
+  'r47':'https://images.pexels.com/photos/1295572/pexels-photo-1295572.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'r48':'https://food.ru/upload/recipes/2024/07/17/syrnye-butyerbrody-s-ogurtsom.jpg',
+  'r49':'https://images.pexels.com/photos/1257671/pexels-photo-1257671.jpeg?auto=compress&cs=tinysrgb&w=600'
+};
+
+function loadPhotoCache(){
+  try{
+    const raw = localStorage.getItem(PHOTO_CACHE_KEY);
+    if (raw) Object.assign(photoCache, JSON.parse(raw));
+    const raw2 = localStorage.getItem(USER_PHOTOS_KEY);
+    if (raw2) Object.assign(userPhotos, JSON.parse(raw2));
+  }catch(e){}
+}
+function savePhotoCache(){ try{ localStorage.setItem(PHOTO_CACHE_KEY, JSON.stringify(photoCache)); }catch(e){} }
+function saveUserPhotos(){ try{ localStorage.setItem(USER_PHOTOS_KEY, JSON.stringify(userPhotos)); }catch(e){} }
+
+function verifyImage(url, timeoutMs = 6000){
+  return new Promise(resolve => {
+    if (!url) return resolve(false);
+    const img = new Image();
+    let done = false;
+    const timer = setTimeout(() => { if (!done){ done = true; img.src = ''; resolve(false); } }, timeoutMs);
+    img.onload = () => {
+      if (done) return;
+      done = true; clearTimeout(timer);
+      resolve(img.naturalWidth >= 50 && img.naturalHeight >= 50);
+    };
+    img.onerror = () => {
+      if (done) return;
+      done = true; clearTimeout(timer);
+      resolve(false);
+    };
+    img.src = url;
+  });
+}
+
+async function loadMealPhoto(recipeId, recipeName, forceRefresh = false){
+  if (userPhotos[recipeId]) return userPhotos[recipeId];
+  if (!forceRefresh && photoCache[recipeId] !== undefined) return photoCache[recipeId];
+  if (BUILTIN_PHOTOS[recipeId]){
+    const url = BUILTIN_PHOTOS[recipeId];
+    if (await verifyImage(url)){
+      photoCache[recipeId] = url;
+      savePhotoCache();
+      return url;
+    }
+  }
+  const tags = recipeName.split(/\s+/).slice(0, 3).join(',');
+  const seed = forceRefresh ? Date.now() : (recipeId.split('').reduce((a,c) => a + c.charCodeAt(0), 0));
+  const url = 'https://loremflickr.com/400/300/' + encodeURIComponent(tags) + '/all?random=' + seed;
+  photoCache[recipeId] = url;
+  savePhotoCache();
+  return url;
+}
+
+let photoLoadToken = 0;
+async function hydratePhotos(){
+  if (!state.showPhotos) return;
+  const myToken = ++photoLoadToken;
+  const all = [...BASE_RECIPES, ...state.customRecipes];
+  for (let i = 0; i < all.length; i += 6){
+    if (myToken !== photoLoadToken) return;
+    await Promise.all(all.slice(i, i + 6).map(async r => {
+      const url = await loadMealPhoto(r.id, r.n);
+      if (myToken !== photoLoadToken) return;
+      if (url){ r.photo = url; applyPhotoToDom(r.id, url); }
+    }));
+  }
+}
+
+function applyPhotoToDom(recipeId, url){
+  document.querySelectorAll('[data-photo-rid="' + recipeId + '"]').forEach(el => {
+    if (!url){
+      const loading = el.querySelector('.photo-loading');
+      if (loading) loading.remove();
+      return;
+    }
+    const loading = el.querySelector('.photo-loading');
+    if (loading) loading.remove();
+    const emo = el.querySelector('.emo');
+    if (emo) emo.style.display = 'none';
+    let img = el.querySelector('img');
+    if (!img){
+      img = document.createElement('img');
+      img.alt = ''; img.loading = 'lazy';
+      img.onerror = () => {
+        img.remove();
+        if (emo) emo.style.display = '';
+        photoCache[recipeId] = '';
+        savePhotoCache();
+      };
+      el.appendChild(img);
+    }
+    img.src = url;
+  });
+}
+
+async function regeneratePhoto(recipeId, recipeName){
+  delete photoCache[recipeId];
+  savePhotoCache();
+  document.querySelectorAll('[data-photo-rid="' + recipeId + '"]').forEach(el => {
+    const img = el.querySelector('img'); if (img) img.remove();
+    const emo = el.querySelector('.emo'); if (emo) emo.style.display = '';
+  });
+  const url = await loadMealPhoto(recipeId, recipeName, true);
+  if (url){
+    const r = allRecipes().find(x => x.id === recipeId);
+    if (r) r.photo = url;
+    applyPhotoToDom(recipeId, url);
+  }
+}
+function setUserPhoto(recipeId, url){
+  if (!url) delete userPhotos[recipeId]; else userPhotos[recipeId] = url;
+  saveUserPhotos();
+  const r = allRecipes().find(x => x.id === recipeId);
+  if (r) r.photo = url || null;
+  applyPhotoToDom(recipeId, url || null);
+}
+
+/* ============================================================
+   ДАННЫЕ
+   ============================================================ */
+const STORES = {
+  pyaterochka:{id:'pyaterochka',name:'Пятёрочка',desc:'Дискаунтер · базовая',color:'#e11d48',letter:'5'},
+  magnit:{id:'magnit',name:'Магнит',desc:'Дискаунтер · эконом',color:'#dc2626',letter:'М'},
+  perekrestok:{id:'perekrestok',name:'Перекрёсток',desc:'Супермаркет · +25%',color:'#16a34a',letter:'П'},
+  vkusvill:{id:'vkusvill',name:'ВкусВилл',desc:'Премиум · +65%',color:'#0ea5e9',letter:'В'},
+  auchan:{id:'auchan',name:'Ашан',desc:'Гипермаркет · −5%',color:'#f97316',letter:'А'},
+  lenta:{id:'lenta',name:'Лента',desc:'Гипермаркет · базовый',color:'#eab308',letter:'Л'}
+};
+
+const CAT_MULT = {
+  protein:{pyaterochka:1.00,magnit:0.96,perekrestok:1.30,vkusvill:1.75,auchan:0.93,lenta:1.02},
+  dairy:  {pyaterochka:1.00,magnit:0.90,perekrestok:1.22,vkusvill:1.60,auchan:0.96,lenta:1.00},
+  grain:  {pyaterochka:1.00,magnit:0.95,perekrestok:1.18,vkusvill:1.55,auchan:0.94,lenta:0.98},
+  veg:    {pyaterochka:1.00,magnit:0.98,perekrestok:1.28,vkusvill:1.70,auchan:0.97,lenta:1.05},
+  other:  {pyaterochka:1.00,magnit:0.97,perekrestok:1.25,vkusvill:1.65,auchan:0.95,lenta:1.03}
+};
+
+const PRESETS = [
+  {id:'eco',name:'Эконом',icon:'🚀',perDay:200,days:7,people:1},
+  {id:'stand',name:'Стандарт',icon:'⚖️',perDay:350,days:7,people:2},
+  {id:'comf',name:'Комфорт',icon:'💎',perDay:600,days:7,people:2},
+  {id:'month',name:'Месяц',icon:'📅',perDay:300,days:30,people:1}
+];
+
+const GOAL_KCAL = {
+  maintain: 2000,
+  lose: 1600
+};
+
+const SLOT_KCAL_SHARE = {
+  breakfast: 0.22,
+  lunch: 0.35,
+  dinner: 0.30,
+  snack: 0.13
+};
+
+/* Сайды (дополнительные блюда) */
+const SIDE_RECIPES = {
+  lunch:  ['r15','r18','r19','r22','r23','r25','r26'],
+  dinner: ['r19','r26','r34']
+};
+
+const SEASON_MONTHS = {
+  potato:[8,9,10],carrot:[8,9,10],onion:[7,8,9],cabbage:[8,9,10,11],
+  beet:[8,9,10],tomato:[7,8,9],cucumber:[6,7,8],zucchini:[7,8,9],
+  pumpkin:[9,10,11],apple:[8,9,10],spinach:[4,5,6],pepper:[7,8,9],
+  berries:[6,7,8],broccoli:[6,7,8],mushrooms:[8,9,10]
+};
+function isInSeason(key){
+  const months = SEASON_MONTHS[key];
+  if (!months) return false;
+  return months.includes(new Date().getMonth() + 1);
+}
+function recipeSeasonScore(r){
+  let total = 0, seasonal = 0;
+  Object.keys(r.ing).forEach(k => {
+    if (SEASON_MONTHS[k]){ total++; if (isInSeason(k)) seasonal++; }
+  });
+  return total === 0 ? 0 : seasonal / total;
+}
+
+const PRODUCTS = {
+  oatmeal:{name:'Овсяные хлопья',price:95,unit:'кг',cat:'grain',m:{p:13,f:7,c:62}},
+  buckwheat:{name:'Гречка',price:115,unit:'кг',cat:'grain',m:{p:13,f:3,c:62}},
+  rice:{name:'Рис',price:120,unit:'кг',cat:'grain',m:{p:7,f:1,c:78}},
+  pasta:{name:'Макароны',price:140,unit:'кг',cat:'grain',m:{p:12,f:1.5,c:70}},
+  vermicelli:{name:'Вермишель',price:130,unit:'кг',cat:'grain',m:{p:11,f:1.5,c:72}},
+  flour:{name:'Мука пшеничная',price:70,unit:'кг',cat:'grain',m:{p:10,f:1,c:70}},
+  bread:{name:'Хлеб цельнозерновой',price:190,unit:'кг',cat:'grain',m:{p:8,f:3,c:45}},
+  beans:{name:'Фасоль / горох',price:135,unit:'кг',cat:'grain',m:{p:21,f:2,c:50}},
+  potato:{name:'Картофель',price:60,unit:'кг',cat:'veg',m:{p:2,f:0.1,c:17}},
+  carrot:{name:'Морковь',price:55,unit:'кг',cat:'veg',m:{p:1.3,f:0.1,c:7}},
+  onion:{name:'Лук репчатый',price:50,unit:'кг',cat:'veg',m:{p:1.4,f:0.2,c:10}},
+  cabbage:{name:'Капуста белокочанная',price:45,unit:'кг',cat:'veg',m:{p:1.8,f:0.2,c:5}},
+  beet:{name:'Свёкла',price:50,unit:'кг',cat:'veg',m:{p:1.5,f:0.1,c:9}},
+  tomato:{name:'Помидоры',price:220,unit:'кг',cat:'veg',m:{p:1.1,f:0.2,c:4}},
+  cucumber:{name:'Огурцы',price:170,unit:'кг',cat:'veg',m:{p:0.8,f:0.1,c:3}},
+  zucchini:{name:'Кабачки',price:130,unit:'кг',cat:'veg',m:{p:0.6,f:0.3,c:4.6}},
+  broccoli:{name:'Брокколи',price:290,unit:'кг',cat:'veg',m:{p:3,f:0.4,c:7}},
+  greens:{name:'Зелень',price:350,unit:'кг',cat:'veg',m:{p:3.7,f:0.4,c:8}},
+  banana:{name:'Бананы',price:110,unit:'кг',cat:'veg',m:{p:1.5,f:0.5,c:21}},
+  apple:{name:'Яблоки',price:130,unit:'кг',cat:'veg',m:{p:0.4,f:0.4,c:10}},
+  pumpkin:{name:'Тыква',price:80,unit:'кг',cat:'veg',m:{p:1,f:0.3,c:7}},
+  spinach:{name:'Шпинат',price:400,unit:'кг',cat:'veg',m:{p:3,f:0.4,c:3}},
+  mushrooms:{name:'Шампиньоны',price:280,unit:'кг',cat:'veg',m:{p:4.3,f:1,c:0.1}},
+  pepper:{name:'Перец болгарский',price:220,unit:'кг',cat:'veg',m:{p:1.3,f:0.1,c:5}},
+  berries:{name:'Ягоды замороженные',price:350,unit:'кг',cat:'veg',m:{p:1,f:0.5,c:8}},
+  avocado:{name:'Авокадо',price:280,unit:'кг',cat:'veg',m:{p:2,f:15,c:9}},
+  chickenBreast:{name:'Куриная грудка',price:430,unit:'кг',cat:'protein',m:{p:23,f:2,c:0}},
+  chickenThigh:{name:'Куриные бёдра',price:330,unit:'кг',cat:'protein',m:{p:19,f:10,c:0}},
+  turkey:{name:'Индейка (филе)',price:520,unit:'кг',cat:'protein',m:{p:22,f:3,c:0}},
+  fish:{name:'Рыба (минтай, треска)',price:390,unit:'кг',cat:'protein',m:{p:18,f:4,c:0}},
+  salmon:{name:'Лосось',price:1200,unit:'кг',cat:'protein',m:{p:20,f:13,c:0}},
+  eggs:{name:'Яйца',price:14,unit:'шт',cat:'protein',m:{p:6.3,f:5.3,c:0.4}},
+  cottage:{name:'Творог 5%',price:330,unit:'кг',cat:'dairy',m:{p:17,f:5,c:3}},
+  milk:{name:'Молоко',price:90,unit:'л',cat:'dairy',m:{p:3,f:3.2,c:4.7}},
+  kefir:{name:'Кефир',price:95,unit:'л',cat:'dairy',m:{p:3,f:2.5,c:4}},
+  yogurt:{name:'Йогурт натуральный',price:150,unit:'кг',cat:'dairy',m:{p:5,f:3,c:6}},
+  cheese:{name:'Сыр',price:650,unit:'кг',cat:'dairy',m:{p:25,f:27,c:0}},
+  sourCream:{name:'Сметана 15%',price:280,unit:'кг',cat:'dairy',m:{p:2.5,f:15,c:3.5}},
+  oil:{name:'Масло растительное',price:160,unit:'л',cat:'other',m:{p:0,f:100,c:0}},
+  nuts:{name:'Орехи',price:850,unit:'кг',cat:'other',m:{p:20,f:55,c:13}},
+  honey:{name:'Мёд',price:550,unit:'кг',cat:'other',m:{p:0.3,f:0,c:82}}
+};
+
+const CATS = {
+  protein:{name:'🍗 Мясо, рыба, яйца'},
+  dairy:{name:'🥛 Молочные продукты'},
+  grain:{name:'🌾 Крупы, макароны, хлеб'},
+  veg:{name:'🥕 Овощи и фрукты'},
+  other:{name:'🫙 Прочее'}
+};
+const CAT_ORDER = ['protein','dairy','grain','veg','other'];
+const EXCLUDABLE = ['chickenBreast','chickenThigh','turkey','fish','salmon','eggs',
+  'cottage','milk','kefir','yogurt','cheese','sourCream','nuts'];
+const MEAT_KEYS = ['chickenBreast','chickenThigh','turkey','fish','salmon'];
+
+const BASE_RECIPES = [
+{n:'Овсяная каша с бананом и орехами',m:'breakfast',emoji:'🥣🍌',ing:{oatmeal:60,milk:150,banana:100,nuts:15,honey:8},steps:['Доведите молоко до кипения, всыпьте овсянку.','Варите 5–7 минут, помешивая.','Снимите с огня, добавьте мёд.','Нарежьте банан, посыпьте орехами.']},
+{n:'Омлет с помидорами и зеленью',m:'breakfast',emoji:'🍳🍅',ing:{eggs:2,tomato:100,greens:10,oil:5,bread:30},steps:['Взбейте яйца со щепоткой соли.','Обжарьте нарезанный помидор 2 минуты.','Залейте яйцами, готовьте под крышкой 4 минуты.','Посыпьте зеленью.']},
+{n:'Творог с яблоком и мёдом',m:'breakfast',emoji:'🥣🍎',ing:{cottage:130,apple:120,honey:8},steps:['Выложите творог в миску.','Нарежьте яблоко кубиками.','Полейте мёдом, посыпьте корицей.']},
+{n:'Гречневая каша с молоком',m:'breakfast',emoji:'🥣🥛',ing:{buckwheat:60,milk:150,honey:8,oil:5},steps:['Промойте гречку, залейте водой 1:2.','Варите 15 минут на медленном огне.','Добавьте молоко, прогрейте 2 минуты.','Заправьте мёдом и маслом.']},
+{n:'Яичница с сыром и помидорами',m:'breakfast',emoji:'🍳🧀',ing:{eggs:2,cheese:30,tomato:100,oil:5,bread:30},steps:['Разогрейте масло на сковороде.','Обжарьте дольки помидора 2 минуты.','Вбейте яйца, посолите.','Посыпьте тёртым сыром, накройте крышкой.']},
+{n:'Смузи с кефиром и бананом',m:'breakfast',emoji:'🥤🍌',ing:{kefir:200,banana:100,oatmeal:30,honey:8},steps:['Залейте овсянку кефиром на 5 минут.','Добавьте банан и мёд.','Взбейте блендером.']},
+{n:'Овсяноблин с творогом',m:'breakfast',emoji:'🥞',ing:{oatmeal:40,eggs:2,milk:50,cottage:80,oil:5,honey:8},steps:['Смешайте овсянку, яйца и молоко.','Дайте постоять 5 минут.','Обжарьте тонкий блин с двух сторон.','Заверните творог с мёдом внутрь.']},
+{n:'Сырники со сметаной',m:'breakfast',emoji:'🥞🍓',ing:{cottage:200,eggs:1,flour:40,sourCream:30,oil:5,honey:10},steps:['Смешайте творог, яйцо, муку и мёд.','Слепите сырники.','Обжарьте по 3 минуты с каждой стороны.','Подавайте со сметаной.']},
+{n:'Рисовая каша с яблоком и корицей',m:'breakfast',emoji:'🍚🍎',ing:{rice:60,milk:200,apple:100,honey:8,oil:5},steps:['Промойте рис, залейте молоком.','Варите 20 минут на медленном огне.','Добавьте натёртое яблоко и мёд.','Посыпьте корицей.']},
+{n:'Тост с авокадо и яйцом',m:'breakfast',emoji:'🥑🥚',ing:{bread:60,avocado:80,eggs:2,oil:5},steps:['Подсушите хлеб в тостере.','Разомните авокадо с солью.','Отварите яйца-пашот или вкрутую.','Выложите авокадо на тост, сверху яйцо.']},
+{n:'Овсяная каша с ягодами',m:'breakfast',emoji:'🥣🫐',ing:{oatmeal:60,milk:150,berries:80,honey:8},steps:['Доведите молоко до кипения.','Всыпьте овсянку, варите 5 минут.','Добавьте ягоды и мёд.']},
+{n:'Йогурт с ягодами и орехами',m:'breakfast',emoji:'🥛🫐',ing:{yogurt:150,berries:80,nuts:15,honey:8},steps:['Выложите йогурт в миску.','Добавьте ягоды и орехи.','Полейте мёдом.']},
+{n:'Омлет со шпинатом и сыром',m:'breakfast',emoji:'🍳🥬',ing:{eggs:2,spinach:50,cheese:30,oil:5,bread:30},steps:['Обжарьте шпинат 1 минуту.','Залейте взбитыми яйцами.','Посыпьте сыром, готовьте под крышкой 4 минуты.']},
+{n:'Бутерброд с творожным сыром и огурцом',m:'breakfast',emoji:'🥪',ing:{bread:60,cheese:40,cucumber:80,greens:5},steps:['Намажьте хлеб творожным сыром.','Выложите нарезанный огурец.','Посыпьте зеленью.']},
+{n:'Куриная грудка с гречкой и овощами',m:'lunch',emoji:'🍗🥣',ing:{chickenBreast:150,buckwheat:70,carrot:50,onion:30,oil:10},steps:['Отварите гречку.','Обжарьте грудку 7 минут.','Добавьте лук и морковь, тушите 8 минут.','Соедините с гречкой.']},
+{n:'Овощной суп с курицей',m:'lunch',emoji:'🍲',ing:{chickenBreast:100,potato:100,carrot:50,onion:30,cabbage:80,oil:5,bread:40},steps:['Залейте курицу 700 мл воды, варите 20 минут.','Добавьте картофель и морковь.','Через 10 минут — капусту и лук.','Варите ещё 10 минут.']},
+{n:'Рис с рыбой и брокколи',m:'lunch',emoji:'🐟🍚',ing:{fish:150,rice:70,broccoli:100,carrot:40,oil:10},steps:['Отварите рис.','Запеките рыбу 15 минут при 200 °C.','Отварите брокколи и морковь.','Выложите на тарелку, сбрызните маслом.']},
+{n:'Макароны с курицей в томатном соусе',m:'lunch',emoji:'🍝',ing:{pasta:80,chickenBreast:120,tomato:120,onion:30,oil:10},steps:['Отварите макароны аль денте.','Обжарьте курицу 7 минут.','Добавьте лук и помидоры, тушите 10 минут.','Смешайте с макаронами.']},
+{n:'Постный борщ с фасолью',m:'lunch',emoji:'🍲🥬',ing:{beet:100,cabbage:80,potato:100,carrot:40,onion:30,beans:40,oil:10,bread:40},steps:['Замочите фасоль, отварите.','В кипящую воду добавьте картофель.','Обжарьте лук, морковь и свёклу.','Через 10 минут — капусту и фасоль.']},
+{n:'Салат с яйцом и сыром',m:'lunch',emoji:'🥗',ing:{tomato:100,cucumber:100,eggs:2,cheese:30,oil:10,bread:40},steps:['Отварите яйца (8 минут).','Нарежьте овощи.','Добавьте яйца и тёртый сыр.','Заправьте маслом.']},
+{n:'Плов с курицей',m:'lunch',emoji:'🍚🍗',ing:{rice:70,chickenThigh:130,carrot:60,onion:40,oil:12},steps:['Обжарьте бёдра до корочки.','Добавьте лук и морковь.','Всыпьте рис, залейте водой.','Тушите под крышкой 20 минут.']},
+{n:'Гречка с куриными бёдрами и кабачками',m:'lunch',emoji:'🍗🥒',ing:{buckwheat:70,chickenThigh:130,zucchini:100,onion:30,oil:10},steps:['Отварите гречку.','Обжарьте бёдра.','Добавьте кабачки и лук, тушите 10 минут.','Соедините с гречкой.']},
+{n:'Суп-пюре из тыквы',m:'lunch',emoji:'🎃🍲',ing:{pumpkin:300,potato:100,carrot:50,onion:30,milk:100,oil:5,bread:30},steps:['Обжарьте лук и морковь.','Добавьте тыкву и картофель, залейте водой.','Варите 20 минут.','Пробейте блендером, влейте молоко.']},
+{n:'Куриный суп с вермишелью',m:'lunch',emoji:'🍜',ing:{chickenBreast:100,vermicelli:50,potato:80,carrot:50,onion:30,greens:10},steps:['Сварите курицу 20 минут.','Добавьте картофель и морковь.','Через 10 минут — вермишель.','Варите 5 минут, посыпьте зеленью.']},
+{n:'Индейка с рисом и овощами',m:'lunch',emoji:'🦃🍚',ing:{turkey:150,rice:70,pepper:80,onion:30,oil:10},steps:['Отварите рис.','Обжарьте индейку 8 минут.','Добавьте перец и лук, тушите 8 минут.','Соедините с рисом.']},
+{n:'Щи из свежей капусты',m:'lunch',emoji:'🍲',ing:{cabbage:150,potato:100,carrot:50,onion:30,chickenBreast:80,oil:5,bread:40},steps:['Сварите курицу.','Добавьте картофель.','Через 10 минут — капусту и обжаренные лук с морковью.','Варите 10 минут.']},
+{n:'Салат с рыбой и фасолью',m:'lunch',emoji:'🥗🐟',ing:{fish:100,beans:50,tomato:100,cucumber:80,oil:10,bread:30},steps:['Отварите фасоль.','Запеките рыбу, разомните.','Нарежьте овощи.','Смешайте, заправьте маслом.']},
+{n:'Картофельное пюре с куриной котлетой',m:'lunch',emoji:'🥔🍖',ing:{potato:200,chickenBreast:120,eggs:1,flour:20,milk:50,oil:10,onion:30},steps:['Сварите картофель, разомните с молоком.','Смешайте фарш, яйцо, муку, лук.','Обжарьте котлеты по 4 минуты.','Подавайте с пюре.']},
+{n:'Гречка с грибами',m:'lunch',emoji:'🍄🥣',ing:{buckwheat:70,mushrooms:150,onion:50,oil:10,greens:10},steps:['Отварите гречку.','Обжарьте лук и грибы 10 минут.','Соедините с гречкой.','Посыпьте зеленью.']},
+{n:'Запечённая рыба с овощами',m:'dinner',emoji:'🐟🥕',ing:{fish:150,zucchini:100,tomato:100,carrot:50,oil:10},steps:['Разогрейте духовку до 200 °C.','Нарежьте овощи, выложите на противень.','Сверху рыбу, сбрызните маслом.','Запекайте 20–25 минут.']},
+{n:'Куриные бёдра с картофелем в духовке',m:'dinner',emoji:'🍗🥔',ing:{chickenThigh:140,potato:180,onion:30,oil:10},steps:['Нарежьте картофель дольками.','Смешайте с луком, солью и маслом.','Выложите бёдра сверху.','Запекайте 35 минут при 200 °C.']},
+{n:'Тушёные овощи с фасолью',m:'dinner',emoji:'🥘',ing:{beans:50,zucchini:120,tomato:100,onion:30,carrot:50,oil:10},steps:['Отварите фасоль.','Обжарьте лук и морковь.','Добавьте кабачки и помидоры.','Тушите 15 минут, добавьте фасоль.']},
+{n:'Творожная запеканка с яблоком',m:'dinner',emoji:'🥧',ing:{cottage:150,eggs:1,apple:100,oatmeal:30,honey:8},steps:['Смешайте творог, яйцо, овсянку и мёд.','Добавьте натёртое яблоко.','Выложите в форму.','Запекайте 25 минут при 180 °C.']},
+{n:'Омлет с брокколи и сыром',m:'dinner',emoji:'🍳🥦',ing:{eggs:2,broccoli:100,cheese:25,oil:5},steps:['Отварите брокколи 3 минуты.','Взбейте яйца.','Вылейте на сковороду, добавьте брокколи.','Готовьте под крышкой 5 минут, посыпьте сыром.']},
+{n:'Салат с курицей и овощами',m:'dinner',emoji:'🥗🍗',ing:{chickenBreast:120,cucumber:100,tomato:100,greens:10,oil:10},steps:['Запеките или отварите грудку.','Нарежьте овощи.','Смешайте с курицей.','Заправьте маслом.']},
+{n:'Рагу с курицей и овощами',m:'dinner',emoji:'🥘',ing:{chickenBreast:120,potato:100,carrot:50,onion:30,cabbage:80,oil:10},steps:['Обжарьте курицу 5 минут.','Добавьте лук и морковь.','Через 5 минут — картофель и капусту.','Тушите 20 минут под крышкой.']},
+{n:'Котлеты из индейки с гречкой',m:'dinner',emoji:'🦃',ing:{turkey:150,eggs:1,onion:30,flour:20,buckwheat:70,oil:8},steps:['Отварите гречку.','Смешайте фарш, яйцо, муку, лук.','Обжарьте котлеты по 4 минуты.','Подавайте с гречкой.']},
+{n:'Запеканка картофельная с фаршем',m:'dinner',emoji:'🥔',ing:{potato:200,chickenThigh:100,onion:40,eggs:1,milk:50,cheese:20,oil:8},steps:['Сварите картофель, разомните с молоком.','Обжарьте фарш с луком.','Выложите слоями в форму.','Запекайте 25 минут при 180 °C.']},
+{n:'Рыбные котлеты с пюре',m:'dinner',emoji:'🐟🥔',ing:{fish:150,eggs:1,onion:30,flour:20,potato:150,milk:50,oil:10},steps:['Сварите картофель, разомните.','Смешайте фарш, яйцо, муку, лук.','Обжарьте котлеты.','Подавайте с пюре.']},
+{n:'Тушёная капуста с курицей',m:'dinner',emoji:'🥬🍗',ing:{cabbage:200,chickenBreast:120,carrot:50,onion:30,tomato:60,oil:10},steps:['Обжарьте курицу.','Добавьте лук и морковь.','Добавьте капусту и помидоры.','Тушите 25 минут.']},
+{n:'Гречка по-купечески',m:'dinner',emoji:'🍄',ing:{buckwheat:70,chickenThigh:100,onion:40,carrot:40,mushrooms:100,oil:10},steps:['Обжарьте бёдра с луком и морковью.','Добавьте грибы.','Всыпьте гречку, залейте водой.','Тушите 20 минут под крышкой.']},
+{n:'Овощное рагу с кабачками',m:'dinner',emoji:'🥘',ing:{zucchini:150,potato:100,carrot:50,onion:30,tomato:100,pepper:80,oil:10},steps:['Обжарьте лук и морковь.','Добавьте картофель.','Через 10 минут — кабачки, помидоры и перец.','Тушите 15 минут.']},
+{n:'Яблоко с орехами',m:'snack',emoji:'🍎🥜',ing:{apple:150,nuts:20},steps:['Нарежьте яблоко дольками.','Добавьте горсть орехов.']},
+{n:'Йогурт с бананом',m:'snack',emoji:'🥛🍌',ing:{yogurt:150,banana:100},steps:['Выложите йогурт в стакан.','Добавьте нарезанный банан.']},
+{n:'Кефир с хлебом',m:'snack',emoji:'🥛',ing:{kefir:200,bread:30},steps:['Налейте кефир.','Подавайте с ломтиком хлеба.']},
+{n:'Морковь и яблоко',m:'snack',emoji:'🥕🍎',ing:{carrot:150,apple:120},steps:['Натрите морковь.','Добавьте натёртое яблоко, перемешайте.']},
+{n:'Творог с зеленью',m:'snack',emoji:'🥣',ing:{cottage:100,greens:10},steps:['Выложите творог в миску.','Посыпьте нарезанной зеленью.']},
+{n:'Орехи и сухофрукты',m:'snack',emoji:'🥜',ing:{nuts:30},steps:['Отмерьте горсть орехов.','При желании добавьте сухофрукты.']},
+{n:'Огурец с сыром',m:'snack',emoji:'🥒🧀',ing:{cucumber:150,cheese:30},steps:['Нарежьте огурец кружками.','Положите ломтик сыра на каждый.']},
+{n:'Яйцо с зеленью',m:'snack',emoji:'🥚',ing:{eggs:2,greens:10},steps:['Отварите яйца вкрутую.','Посыпьте зеленью и солью.']}
+];
+
+const numFmt = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0});
+const fmt = n => numFmt.format(Math.round(n));
+
+function productPrice(key, storeId){
+  const p = PRODUCTS[key];
+  if (!p) return 0;
+  return p.price * (CAT_MULT[p.cat][storeId] ?? 1);
+}
+function ingCost(key, q, storeId){
+  const p = PRODUCTS[key];
+  if (!p) return 0;
+  const price = productPrice(key, storeId);
+  return p.unit === 'шт' ? q * price : q / 1000 * price;
+}
+function fmtQty(key, q){
+  const p = PRODUCTS[key];
+  if (!p) return q + ' г';
+  if (p.unit === 'шт') return Math.ceil(q) + ' шт';
+  if (p.unit === 'кг'){
+    if (q >= 1000){ const v = q / 1000; return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1).replace('.',',')) + ' кг'; }
+    return Math.round(q) + ' г';
+  }
+  if (q >= 1000){ const v = q / 1000; return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1).replace('.',',')) + ' л'; }
+  return Math.round(q) + ' мл';
+}
+function roundUp(key, q){
+  const p = PRODUCTS[key];
+  if (!p) return q;
+  if (p.unit === 'шт') return Math.ceil(q);
+  const step = q <= 200 ? 25 : q <= 1000 ? 50 : 100;
+  return Math.ceil(q / step) * step;
+}
+function recipeMacros(r){
+  let p = 0, f = 0, c = 0;
+  for (const [k, q] of Object.entries(r.ing)){
+    const pm = PRODUCTS[k]?.m;
+    if (!pm) continue;
+    const mult = PRODUCTS[k].unit === 'шт' ? q : q / 100;
+    p += pm.p * mult; f += pm.f * mult; c += pm.c * mult;
+  }
+  return {p, f, c, kcal: p*4 + f*9 + c*4};
+}
+function recipeCost(r, storeId){
+  return Object.entries(r.ing).reduce((s, [k, q]) => s + ingCost(k, q, storeId), 0);
+}
+function adjustedCost(r){
+  const c = recipeCost(r, state.store);
+  const likeMult = state.liked.has(r.id) ? 0.6 : 1;
+  const seasonMult = state.seasonal ? (1 - recipeSeasonScore(r) * 0.15) : 1;
+  return c * likeMult * seasonMult;
+}
+function extractMinutes(text){
+  const m = text.match(/(\d+)\s*(?:[–\-]\s*(\d+))?\s*(мин|час)/i);
+  if (!m) return null;
+  let n = parseInt(m[1]);
+  if (m[2]) n = Math.round((parseInt(m[1]) + parseInt(m[2])) / 2);
+  if (m[3].toLowerCase().startsWith('час')) n *= 60;
+  return n > 0 && n <= 240 ? n : null;
+}
+
+BASE_RECIPES.forEach((r, i) => {
+  r.id = 'r' + i;
+  r.macros = recipeMacros(r);
+  r.custom = false;
+  r.photo = null;
+});
+
+const MEAL_LABEL = {breakfast:'Завтрак',lunch:'Обед',dinner:'Ужин',snack:'Перекус'};
+const SLOTS = ['breakfast','lunch','dinner','snack'];
+
+const STORAGE_KEY = 'mealplanner.v11';
+
+const state = {
+  budget: 5000, days: 7, people: 2,
+  goal: 'maintain',
+  targetKcal: 1800,
+  store: 'pyaterochka',
+  vegetarian: false,
+  multiDish: true,
+  seasonal: true,
+  showPhotos: true,
+  excluded: new Set(),
+  liked: new Set(),
+  disliked: new Set(),
+  plan: [],
+  customRecipes: [],
+  tracker: {},
+  theme: 'auto',
+  checked: new Set(),
+  search: '',
+  openMeals: new Set(),
+  activeTab: 'menu',
+  catalogFilter: 'all',
+  catalogSort: 'name',
+  swipeFilter: 'all',
+  pwaDismissed: false,
+  modalMode: null,
+  step: 1
+};
+
+let cookState = null;
+let cookTimerInterval = null;
+let deferredPrompt = null;
+let nrIngredients = [];
+let swipeState = { queue: [], history: [], dragging: null, animating: false };
+
+function allRecipes(){ return [...BASE_RECIPES, ...state.customRecipes]; }
+
+/* ── Goal helpers ── */
+function getDayTargetKcal(){
+  if (state.goal === 'maintain') return 2000;
+  if (state.goal === 'lose') return 1600;
+  if (state.goal === 'calories') return Math.max(1000, Math.min(4000, state.targetKcal || 1800));
+  return 2000;
+}
+function getGoalLabel(){
+  if (state.goal === 'maintain') return 'Правильное питание';
+  if (state.goal === 'lose') return 'Похудение';
+  if (state.goal === 'calories') return 'По калориям';
+  return '';
+}
+
+/* ============================================================
+   МАСТЕР ШАГОВ
+   ============================================================ */
+function goToStep(n){
+  state.step = n;
+  document.querySelectorAll('.wizard-step').forEach(el => {
+    el.classList.toggle('active', +el.dataset.step === n);
+  });
+  document.querySelectorAll('.p-dot').forEach(el => {
+    const dn = +el.dataset.pdot;
+    el.classList.toggle('done', dn < n);
+    el.classList.toggle('current', dn === n);
+  });
+  const backBtn = document.getElementById('back-btn');
+  if (backBtn){
+    if (n > 1 && n < 6) backBtn.classList.remove('hidden');
+    else backBtn.classList.add('hidden');
+  }
+  window.scrollTo({top: 0, behavior: 'smooth'});
+  const sub = document.getElementById('header-sub');
+  if (sub){
+    const titles = {
+      1: 'Шаг 1 · Бюджет и компания',
+      2: 'Шаг 2 · Ваша цель',
+      3: 'Шаг 3 · Выбор магазина',
+      4: 'Шаг 4 · Что вам нравится',
+      5: 'Шаг 5 · Предпочтения',
+      6: 'Готовое меню'
+    };
+    sub.textContent = titles[n] || '';
+  }
+  if (n === 4) initSwipeStep();
+}
+
+function syncFormFromState(){
+  document.getElementById('budget').value = state.budget;
+  document.getElementById('days').value = state.days;
+  document.getElementById('people').value = state.people;
+  document.getElementById('veg').checked = state.vegetarian;
+  document.getElementById('multiDish').checked = state.multiDish;
+  document.getElementById('seasonal').checked = state.seasonal;
+  document.getElementById('showPhotos').checked = state.showPhotos;
+  document.getElementById('custom-kcal').value = state.targetKcal;
+  document.querySelectorAll('.store-card').forEach(el => {
+    el.classList.toggle('active', el.dataset.storeId === state.store);
+  });
+  document.querySelectorAll('.goal-card').forEach(el => {
+    el.classList.toggle('active', el.dataset.goal === state.goal);
+  });
+  const ckw = document.getElementById('custom-kcal-wrap');
+  if (ckw) ckw.style.display = state.goal === 'calories' ? 'block' : 'none';
+}
+
+function readFormToState(){
+  state.budget = Math.max(100, +document.getElementById('budget').value || 0);
+  state.days   = Math.min(30, Math.max(1, +document.getElementById('days').value || 1));
+  state.people = Math.min(10, Math.max(1, +document.getElementById('people').value || 1));
+  state.vegetarian = document.getElementById('veg').checked;
+  state.multiDish = document.getElementById('multiDish').checked;
+  state.seasonal = document.getElementById('seasonal').checked;
+  state.showPhotos = document.getElementById('showPhotos').checked;
+  const ck = document.getElementById('custom-kcal');
+  if (ck) state.targetKcal = Math.max(1000, Math.min(4000, +ck.value || 1800));
+  saveState();
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY) ||
+                localStorage.getItem('mealplanner.v10') ||
+                localStorage.getItem('mealplanner.v9');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (typeof s.budget === 'number') state.budget = s.budget;
+    if (typeof s.days === 'number') state.days = s.days;
+    if (typeof s.people === 'number') state.people = s.people;
+    if (typeof s.goal === 'string') state.goal = s.goal;
+    if (typeof s.targetKcal === 'number') state.targetKcal = s.targetKcal;
+    if (s.store && STORES[s.store]) state.store = s.store;
+    state.vegetarian = !!s.vegetarian;
+    state.multiDish = s.multiDish !== false;
+    state.seasonal = s.seasonal !== false;
+    state.showPhotos = s.showPhotos !== false;
+    state.excluded = new Set(s.excluded || []);
+    state.liked = new Set(s.liked || []);
+    state.disliked = new Set(s.disliked || []);
+    state.checked = new Set(s.checked || []);
+    state.theme = s.theme || 'auto';
+    state.pwaDismissed = !!s.pwaDismissed;
+    state.tracker = s.tracker && typeof s.tracker === 'object' ? s.tracker : {};
+    const cr = Array.isArray(s.customRecipes) ? s.customRecipes : [];
+    state.customRecipes = cr.map(r => {
+      const rec = {id:r.id,n:r.n,m:r.m,emoji:r.emoji||'🍽',
+        ing:{...(r.ing||{})},steps:r.steps||[],custom:true,photo:null};
+      rec.macros = recipeMacros(rec);
+      return rec;
+    });
+    state.plan = (s.plan || []).map(day => ({
+      meals: (day.meals || []).map(m => ({
+        slot: m.slot, recipeId: m.recipeId, portions: m.portions || 1,
+        extraId: m.extraId || null, extraPortions: m.extraPortions || 1
+      }))
+    }));
+  }catch(e){ console.warn('load failed', e); }
+}
+
+function saveState(){
+  try{
+    const s = {
+      budget: state.budget, days: state.days, people: state.people,
+      goal: state.goal, targetKcal: state.targetKcal,
+      store: state.store,
+      vegetarian: state.vegetarian,
+      multiDish: state.multiDish,
+      seasonal: state.seasonal,
+      showPhotos: state.showPhotos,
+      excluded: [...state.excluded],
+      liked: [...state.liked],
+      disliked: [...state.disliked],
+      checked: [...state.checked],
+      theme: state.theme,
+      pwaDismissed: state.pwaDismissed,
+      tracker: state.tracker,
+      customRecipes: state.customRecipes.map(r => ({
+        id:r.id, n:r.n, m:r.m, emoji:r.emoji, ing:r.ing, steps:r.steps
+      })),
+      plan: state.plan.map(day => ({
+        meals: day.meals.map(m => ({
+          slot:m.slot, recipeId:m.recipe.id, portions:m.portions||1,
+          extraId: m.extra ? m.extra.id : null, extraPortions: m.extraPortions || 1
+        }))
+      }))
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  }catch(e){ console.warn('save failed', e); }
+}
+
+function recipeIsAllowed(r){
+  if (state.disliked.has(r.id)) return false;
+  if (state.vegetarian && Object.keys(r.ing).some(k => MEAT_KEYS.includes(k))) return false;
+  if (Object.keys(r.ing).some(k => state.excluded.has(k))) return false;
+  return true;
+}
+function getPool(meal, fallbackAll){
+  let pool = allRecipes().filter(r => r.m === meal && recipeIsAllowed(r));
+  if (pool.length === 0 && fallbackAll) pool = allRecipes().filter(r => r.m === meal);
+  return pool;
+}
+
+/* ============================================================
+   ГЕНЕРАЦИЯ ПЛАНА (калории + бюджет + разнообразие)
+   ============================================================ */
+function buildPlan(level){
+  const pools = {};
+  SLOTS.forEach(s => pools[s] = getPool(s, true));
+  const dayTarget = getDayTargetKcal();
+  const usedRecently = {}; // recipeId -> last day index used
+  const VARIETY_WINDOW = 3;
+
+  const plan = [];
+  for (let d = 0; d < state.days; d++){
+    const meals = SLOTS.map(slot => {
+      const pool = pools[slot];
+      const slotTarget = dayTarget * SLOT_KCAL_SHARE[slot];
+
+      // Фильтр по разнообразию
+      let candidates = pool.filter(r => {
+        const last = usedRecently[r.id];
+        return last === undefined || (d - last) >= VARIETY_WINDOW;
+      });
+      if (candidates.length < 3) candidates = pool.slice();
+
+      // Скоринг: близость к целевому калоражу + фактор бюджета
+      const scored = candidates.map(r => {
+        const kcal = r.macros.kcal;
+        const cost = recipeCost(r, state.store);
+        const kcalDiff = Math.abs(kcal - slotTarget) / Math.max(slotTarget, 1);
+        const costFactor = 1 + level * (cost / 250);
+        return { r, score: kcalDiff * 1.0 + costFactor * 0.35 };
+      });
+      scored.sort((a, b) => a.score - b.score);
+
+      // Берём из топ-5 и чередуем по дню для разнообразия
+      const top = scored.slice(0, Math.min(5, scored.length));
+      const idx = (d * 7 + SLOTS.indexOf(slot) * 3) % top.length;
+      const chosen = top[idx].r;
+      usedRecently[chosen.id] = d;
+
+      // Дополнительное блюдо (сайд) для обеда/ужина
+      let extra = null;
+      let extraPortions = 1;
+      if (state.multiDish && (slot === 'lunch' || slot === 'dinner')){
+        const sideIds = SIDE_RECIPES[slot] || [];
+        let sideCandidates = sideIds
+          .map(id => allRecipes().find(r => r.id === id))
+          .filter(r => r && r.id !== chosen.id && !state.disliked.has(r.id))
+          .filter(r => {
+            if (state.vegetarian && Object.keys(r.ing).some(k => MEAT_KEYS.includes(k))) return false;
+            if (Object.keys(r.ing).some(k => state.excluded.has(k))) return false;
+            const last = usedRecently[r.id];
+            return last === undefined || (d - last) >= 1;
+          });
+        if (sideCandidates.length > 0){
+          const mainKcal = chosen.macros.kcal;
+          const remaining = Math.max(80, slotTarget - mainKcal);
+          sideCandidates.sort((a, b) =>
+            Math.abs(a.macros.kcal - remaining) - Math.abs(b.macros.kcal - remaining));
+          const idx2 = (d + (slot === 'dinner' ? 1 : 0)) % Math.min(3, sideCandidates.length);
+          extra = sideCandidates[idx2];
+          usedRecently[extra.id] = d;
+        }
+      }
+
+      return {slot, recipe: chosen, portions: 1, extra, extraPortions};
+    });
+    plan.push({meals});
+  }
+  return plan;
+}
+
+function mealCost(m){
+  const base = recipeCost(m.recipe, state.store) * (m.portions || 1);
+  const extra = m.extra ? recipeCost(m.extra, state.store) * (m.extraPortions || 1) : 0;
+  return (base + extra) * state.people;
+}
+function mealKcal(m){
+  const base = m.recipe.macros.kcal * (m.portions || 1);
+  const extra = m.extra ? m.extra.macros.kcal * (m.extraPortions || 1) : 0;
+  return base + extra;
+}
+function mealMacros(m){
+  const b = m.recipe.macros;
+  const bm = m.portions || 1;
+  const em = m.extraPortions || 1;
+  const e = m.extra ? m.extra.macros : {p:0, f:0, c:0, kcal:0};
+  return {
+    p: b.p * bm + e.p * em,
+    f: b.f * bm + e.f * em,
+    c: b.c * bm + e.c * em,
+    kcal: b.kcal * bm + e.kcal * em
+  };
+}
+function planCost(plan){
+  return plan.reduce((s, day) => s + day.meals.reduce((a, m) => a + mealCost(m), 0), 0);
+}
+
+function generate(){
+  readFormToState();
+  state.checked = new Set();
+  state.openMeals = new Set();
+  const target = state.budget * 0.93;
+  let lo = 0, hi = 1, best = 0;
+  for (let i = 0; i < 24; i++){
+    const mid = (lo + hi) / 2;
+    if (planCost(buildPlan(mid)) <= target){ best = mid; lo = mid; }
+    else hi = mid;
+  }
+  state.plan = buildPlan(best);
+  saveState();
+  render();
+  hydratePhotos();
+}
+
+function buildShopList(){
+  const totals = {};
+  state.plan.forEach(day => day.meals.forEach(m => {
+    const mult = state.people * (m.portions || 1);
+    Object.entries(m.recipe.ing).forEach(([k, q]) => {
+      totals[k] = (totals[k] || 0) + q * mult;
+    });
+    if (m.extra){
+      const eMult = state.people * (m.extraPortions || 1);
+      Object.entries(m.extra.ing).forEach(([k, q]) => {
+        totals[k] = (totals[k] || 0) + q * eMult;
+      });
+    }
+  }));
+  return Object.entries(totals).filter(([k]) => PRODUCTS[k]).map(([k, q]) => {
+    const rq = roundUp(k, q);
+    return {k, q: rq, cost: ingCost(k, rq, state.store)};
+  });
+}
+function compareStores(){
+  const totals = {};
+  state.plan.forEach(day => day.meals.forEach(m => {
+    const mult = state.people * (m.portions || 1);
+    Object.entries(m.recipe.ing).forEach(([k, q]) => {
+      totals[k] = (totals[k] || 0) + q * mult;
+    });
+    if (m.extra){
+      const eMult = state.people * (m.extraPortions || 1);
+      Object.entries(m.extra.ing).forEach(([k, q]) => {
+        totals[k] = (totals[k] || 0) + q * eMult;
+      });
+    }
+  }));
+  const result = {};
+  Object.keys(STORES).forEach(sid => {
+    let total = 0;
+    Object.entries(totals).forEach(([k, q]) => {
+      if (!PRODUCTS[k]) return;
+      total += ingCost(k, roundUp(k, q), sid);
+    });
+    result[sid] = total;
+  });
+  return result;
+}
+function analyzeSavings(){
+  const tips = [];
+  state.plan.forEach((day, di) => {
+    day.meals.forEach((m, mi) => {
+      const curCost = recipeCost(m.recipe, state.store);
+      const pool = getPool(m.slot, false)
+        .filter(r => r.id !== m.recipe.id && recipeCost(r, state.store) < curCost * 0.8);
+      if (pool.length === 0) return;
+      pool.sort((a, b) => recipeCost(a, state.store) - recipeCost(b, state.store));
+      const best = pool[0];
+      tips.push({
+        day: di + 1, meal: MEAL_LABEL[m.slot], mi,
+        current: m.recipe.n, currentCost: curCost,
+        alternative: best, newCost: recipeCost(best, state.store),
+        save: (curCost - recipeCost(best, state.store)) * (m.portions || 1) * state.people
+      });
+    });
+  });
+  tips.sort((a,b) => b.save - a.save);
+  const seen = new Set();
+  const unique = [];
+  for (const t of tips){
+    const key = t.day + '-' + t.mi;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(t);
+    if (unique.length >= 5) break;
+  }
+  return unique;
+}
+function applySavingsTip(di, mi, recipeId){
+  const r = allRecipes().find(x => x.id === recipeId);
+  if (!r) return;
+  state.plan[di - 1].meals[mi].recipe = r;
+  saveState(); render(); hydratePhotos();
+}
+
+/* ============================================================
+   СВАЙП-КАРТОЧКИ
+   ============================================================ */
+function getSwipeQueue(){
+  let recipes = allRecipes();
+  if (state.swipeFilter !== 'all') recipes = recipes.filter(r => r.m === state.swipeFilter);
+  const order = {none: 0, liked: 1, disliked: 2};
+  return recipes.sort((a, b) => {
+    const aS = state.liked.has(a.id) ? 'liked' : state.disliked.has(a.id) ? 'disliked' : 'none';
+    const bS = state.liked.has(b.id) ? 'liked' : state.disliked.has(b.id) ? 'disliked' : 'none';
+    return order[aS] - order[bS];
+  });
+}
+function initSwipeStep(){
+  swipeState.queue = getSwipeQueue();
+  swipeState.history = [];
+  swipeState.dragging = null;
+  swipeState.animating = false;
+  renderSwipeStep();
+  updateSwipeUI();
+}
+function updateSwipeUI(){
+  const counter = document.getElementById('swipe-counter');
+  const undoBtn = document.getElementById('swipe-undo');
+  const queue = swipeState.queue;
+  if (counter){
+    const total = queue.length;
+    const idx = Math.min(total, swipeState.history.length + 1);
+    counter.innerHTML = '<b>' + idx + '</b> из <b>' + total + '</b>';
+  }
+  if (undoBtn) undoBtn.disabled = swipeState.history.length === 0;
+}
+function renderSwipeStep(){
+  const stage = document.getElementById('swipe-stage');
+  if (!stage) return;
+  const remaining = swipeState.queue.slice(swipeState.history.length);
+  stage.innerHTML = '';
+  if (remaining.length === 0){
+    let likedInQueue = 0, dislikedInQueue = 0, neutralInQueue = 0;
+    swipeState.queue.forEach(r => {
+      if (state.liked.has(r.id)) likedInQueue++;
+      else if (state.disliked.has(r.id)) dislikedInQueue++;
+      else neutralInQueue++;
+    });
+    stage.parentElement.style.height = 'auto';
+    stage.innerHTML = '<div class="swipe-done"><div class="done-icon">🎉</div>' +
+      '<h3>Все блюда оценены!</h3><p>Осталось задать предпочтения</p>' +
+      '<div class="done-stats">' +
+        '<div class="ds-item liked"><div class="ds-num">' + likedInQueue + '</div><div class="ds-lbl">❤️</div></div>' +
+        '<div class="ds-item disliked"><div class="ds-num">' + dislikedInQueue + '</div><div class="ds-lbl">👎</div></div>' +
+        '<div class="ds-item neutral"><div class="ds-num">' + neutralInQueue + '</div><div class="ds-lbl">Без оценки</div></div>' +
+      '</div>' +
+      '<button class="btn-reset" id="swipe-reset">Начать заново</button></div>';
+    const rb = stage.querySelector('#swipe-reset');
+    if (rb) rb.addEventListener('click', () => {
+      state.liked.clear(); state.disliked.clear();
+      saveState(); initSwipeStep();
+    });
+    return;
+  }
+  stage.parentElement.style.height = '440px';
+  const visible = remaining.slice(0, 3);
+  for (let i = visible.length - 1; i >= 0; i--){
+    stage.appendChild(createSwipeCard(visible[i], i));
+  }
+  const topCard = stage.lastElementChild;
+  if (topCard) attachDragHandlers(topCard);
+  hydratePhotos();
+}
+function createSwipeCard(r, depth){
+  const card = document.createElement('div');
+  card.className = 'swipe-card' + (depth > 0 ? ' behind' : '');
+  card.dataset.rid = r.id;
+  card.dataset.depth = depth;
+  if (depth > 0){
+    card.style.transform = 'translateY(' + (depth * 10) + 'px) scale(' + (1 - depth * 0.05) + ')';
+    card.style.zIndex = 10 - depth;
+  } else {
+    card.style.zIndex = 100;
+  }
+  const isLiked = state.liked.has(r.id);
+  const isDisliked = state.disliked.has(r.id);
+  let badge = '';
+  if (isLiked) badge = '<span style="background:var(--like);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px;font-weight:800;margin-left:6px">❤️ было отмечено</span>';
+  if (isDisliked) badge = '<span style="background:var(--dislike);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px;font-weight:800;margin-left:6px">👎 было отмечено</span>';
+  const emojiLen = [...r.emoji].length;
+  const emojiSize = emojiLen > 2 ? '70px' : '90px';
+  const showPhotos = state.showPhotos;
+  const photoContent = (showPhotos && r.photo)
+    ? '<img src="' + r.photo + '" alt="" loading="lazy" onerror="this.remove()">'
+    : '<span class="emo" style="font-size:' + emojiSize + '">' + r.emoji + '</span>';
+  const ingPreview = Object.entries(r.ing).slice(0, 4).map(([k, q]) =>
+    PRODUCTS[k].name + ' ' + fmtQty(k, q)).join(' · ') + (Object.keys(r.ing).length > 4 ? ' ·…' : '');
+  card.innerHTML =
+    '<div class="swipe-photo ' + r.m + '" data-photo-rid="' + r.id + '">' + photoContent +
+      '<div class="swipe-stamp like">НРАВИТСЯ</div>' +
+      '<div class="swipe-stamp dislike">НЕ НРАВИТСЯ</div></div>' +
+    '<div class="swipe-info">' +
+      '<div class="swipe-type">' + MEAL_LABEL[r.m] + badge + '</div>' +
+      '<div class="swipe-title">' + r.n + '</div>' +
+      '<div class="swipe-meta"><span>' + Math.round(r.macros.kcal) + ' ккал</span>' +
+        '<span>Б ' + Math.round(r.macros.p) + ' · Ж ' + Math.round(r.macros.f) + ' · У ' + Math.round(r.macros.c) + '</span>' +
+        '<span>' + fmt(recipeCost(r, state.store)) + ' ₽</span></div>' +
+      '<div class="swipe-ing">' + ingPreview + '</div></div>';
+  return card;
+}
+function attachDragHandlers(card){
+  let startX = 0, startY = 0, currentX = 0, currentY = 0, isDragging = false;
+  const onDown = (e) => {
+    if (swipeState.animating) return;
+    const p = e.touches ? e.touches[0] : e;
+    startX = p.clientX; startY = p.clientY;
+    currentX = 0; currentY = 0; isDragging = true;
+    card.classList.add('dragging');
+  };
+  const onMove = (e) => {
+    if (!isDragging || swipeState.animating) return;
+    const p = e.touches ? e.touches[0] : e;
+    currentX = p.clientX - startX;
+    currentY = p.clientY - startY;
+    const rot = currentX / 20;
+    card.style.transform = 'translate(' + currentX + 'px, ' + (currentY * 0.4) + 'px) rotate(' + rot + 'deg)';
+    const lk = card.querySelector('.swipe-stamp.like');
+    const dk = card.querySelector('.swipe-stamp.dislike');
+    const pr = Math.min(1, Math.abs(currentX) / 100);
+    if (currentX > 0){ lk.style.opacity = pr; dk.style.opacity = 0; }
+    else if (currentX < 0){ dk.style.opacity = pr; lk.style.opacity = 0; }
+    else { lk.style.opacity = 0; dk.style.opacity = 0; }
+  };
+  const onUp = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    card.classList.remove('dragging');
+    const threshold = 100;
+    if (currentX > threshold) completeSwipe(card, 'like');
+    else if (currentX < -threshold) completeSwipe(card, 'dislike');
+    else {
+      card.style.transform = 'translate(0,0) rotate(0)';
+      const lk = card.querySelector('.swipe-stamp.like');
+      const dk = card.querySelector('.swipe-stamp.dislike');
+      lk.style.opacity = 0; dk.style.opacity = 0;
+    }
+  };
+  card.addEventListener('touchstart', onDown, {passive: true});
+  card.addEventListener('touchmove', onMove, {passive: true});
+  card.addEventListener('touchend', onUp);
+  card.addEventListener('touchcancel', onUp);
+  card.addEventListener('mousedown', onDown);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+function completeSwipe(card, action){
+  swipeState.animating = true;
+  const rid = card.dataset.rid;
+  const dir = action === 'like' ? 1 : -1;
+  card.style.transform = 'translate(' + (dir * 500) + 'px, 50px) rotate(' + (dir * 30) + 'deg)';
+  card.style.opacity = '0';
+  setTimeout(() => {
+    if (action === 'like'){ state.liked.add(rid); state.disliked.delete(rid); }
+    else { state.disliked.add(rid); state.liked.delete(rid); }
+    swipeState.history.push({recipeId: rid, action});
+    saveState();
+    swipeState.animating = false;
+    renderSwipeStep();
+    updateSwipeUI();
+  }, 300);
+}
+function undoLastSwipe(){
+  if (swipeState.history.length === 0) return;
+  const last = swipeState.history.pop();
+  state.liked.delete(last.recipeId);
+  state.disliked.delete(last.recipeId);
+  saveState();
+  renderSwipeStep();
+  updateSwipeUI();
+}
+function swipeCurrentCard(action){
+  if (swipeState.animating) return;
+  const stage = document.getElementById('swipe-stage');
+  if (!stage) return;
+  const topCard = stage.lastElementChild;
+  if (!topCard || !topCard.classList.contains('swipe-card')) return;
+  completeSwipe(topCard, action);
+}
+
+/* ============================================================
+   ЭКСПОРТ МЕНЮ С РЕЦЕПТАМИ
+   ============================================================ */
+function exportMenuWithRecipes(){
+  if (!state.plan.length){ alert('Сначала составьте план'); return; }
+  const shop = buildShopList();
+  const shopTotal = shop.reduce((s,i) => s + i.cost, 0);
+  const store = STORES[state.store];
+  const uniqueRecipes = new Map();
+  state.plan.forEach(day => day.meals.forEach(m => {
+    if (!uniqueRecipes.has(m.recipe.id)) uniqueRecipes.set(m.recipe.id, m.recipe);
+    if (m.extra && !uniqueRecipes.has(m.extra.id)) uniqueRecipes.set(m.extra.id, m.extra);
+  }));
+  let menuHTML = '';
+  state.plan.forEach((day, di) => {
+    const dayKcal = day.meals.reduce((s,m) => s + mealKcal(m), 0);
+    const dayCost = day.meals.reduce((s,m) => s + mealCost(m), 0);
+    menuHTML += '<section class="day"><h3>День ' + (di + 1) + ' · ' +
+      Math.round(dayKcal) + ' ккал · ' + fmt(dayCost) + ' ₽</h3>' +
+      day.meals.map(m => {
+        const r = m.recipe;
+        const p = m.portions || 1;
+        const photo = r.photo ? '<img src="' + r.photo + '" alt="">' : '<span class="emoji">' + r.emoji + '</span>';
+        let extraHTML = '';
+        if (m.extra){
+          const ep = m.extraPortions || 1;
+          extraHTML = '<div class="meal-row extra">' +
+            '<div class="meal-photo">' +
+              (m.extra.photo ? '<img src="' + m.extra.photo + '" alt="">' : '<span class="emoji">' + m.extra.emoji + '</span>') +
+            '</div>' +
+            '<div class="meal-body">' +
+              '<div class="meal-type">Дополнительно</div>' +
+              '<div class="meal-title">+ ' + m.extra.n + '</div>' +
+              '<div class="meal-meta">' + Math.round(m.extra.macros.kcal * ep) + ' ккал</div>' +
+            '</div></div>';
+        }
+        return '<div class="meal-row">' +
+          '<div class="meal-photo">' + photo + '</div>' +
+          '<div class="meal-body">' +
+            '<div class="meal-type">' + MEAL_LABEL[m.slot] + (p !== 1 ? ' · порция ×' + p : '') + '</div>' +
+            '<div class="meal-title">' + r.n + '</div>' +
+            '<div class="meal-meta">' + Math.round(r.macros.kcal * p) + ' ккал · Б ' +
+              Math.round(r.macros.p * p) + ' · Ж ' + Math.round(r.macros.f * p) +
+              ' · У ' + Math.round(r.macros.c * p) + '</div>' +
+          '</div></div>' + extraHTML;
+      }).join('') + '</section>';
+  });
+  let recipesHTML = '';
+  uniqueRecipes.forEach(r => {
+    const photo = r.photo ? '<img src="' + r.photo + '" alt="">' : '<span class="emoji-big">' + r.emoji + '</span>';
+    recipesHTML += '<section class="recipe-card">' +
+      '<div class="recipe-hero">' + photo + '</div>' +
+      '<h3>' + r.n + '</h3>' +
+      '<div class="recipe-meta">' + MEAL_LABEL[r.m] + ' · ' + Math.round(r.macros.kcal) +
+        ' ккал · Б ' + Math.round(r.macros.p) + ' · Ж ' + Math.round(r.macros.f) +
+        ' · У ' + Math.round(r.macros.c) + '</div>' +
+      '<div class="recipe-cols">' +
+        '<div><h4>Ингредиенты</h4><ul>' +
+          Object.entries(r.ing).map(([k, q]) =>
+            '<li><span>' + PRODUCTS[k].name + '</span><b>' + fmtQty(k, q) + '</b></li>').join('') +
+        '</ul></div>' +
+        '<div><h4>Приготовление</h4><ol>' +
+          r.steps.map(s => '<li>' + s + '</li>').join('') + '</ol></div>' +
+      '</div></section>';
+  });
+  const grouped = {};
+  shop.forEach(it => {
+    const c = PRODUCTS[it.k].cat;
+    (grouped[c] = grouped[c] || []).push(it);
+  });
+  let shopHTML = '';
+  CAT_ORDER.forEach(c => {
+    if (!grouped[c]) return;
+    shopHTML += '<div class="shop-cat"><h4>' + CATS[c].name + '</h4>' +
+      grouped[c].sort((a,b) => b.cost - a.cost).map(it =>
+        '<div class="shop-item"><span class="checkbox">☐</span>' +
+          '<span class="shop-name">' + PRODUCTS[it.k].name + '</span>' +
+          '<span class="shop-qty">' + fmtQty(it.k, it.q) + '</span>' +
+          '<span class="shop-price">' + fmt(it.cost) + ' ₽</span></div>').join('') + '</div>';
+  });
+  const html = '<!DOCTYPE html>\n<html lang="ru">\n<head>\n<meta charset="UTF-8">\n' +
+'<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
+'<title>Меню с рецептами</title>\n<style>\n' +
+'*{box-sizing:border-box;margin:0;padding:0}\n' +
+'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f2f6f3;color:#132019;padding:20px;max-width:900px;margin:0 auto;line-height:1.5}\n' +
+'header{background:linear-gradient(140deg,#12a862,#0a7a45);color:#fff;padding:24px;border-radius:16px;margin-bottom:20px}\n' +
+'header h1{margin:0 0 8px;font-size:26px;font-weight:800}\n' +
+'header .meta{font-size:14px;opacity:.9}\n' +
+'section{background:#fff;padding:20px;border-radius:16px;margin-bottom:16px;box-shadow:0 2px 12px rgba(16,60,40,.07)}\n' +
+'section > h2{font-size:20px;font-weight:800;margin-bottom:16px;color:#0b7a44;padding-bottom:10px;border-bottom:2px solid #e6f4ec}\n' +
+'section.day{padding:16px}\n' +
+'section.day h3{font-size:15px;font-weight:800;margin-bottom:12px;color:#0b7a44}\n' +
+'.meal-row{display:flex;gap:12px;padding:10px 0;border-top:1px solid #e4ece7;align-items:center}\n' +
+'.meal-row:first-of-type{border-top:none}\n' +
+'.meal-row.extra{padding-left:20px;background:#f8fbf9;border-radius:8px;margin-top:4px}\n' +
+'.meal-photo{width:60px;height:60px;border-radius:12px;flex:0 0 auto;overflow:hidden;background:linear-gradient(135deg,#fef3c7,#fed7aa);display:grid;place-items:center;font-size:26px}\n' +
+'.meal-photo img{width:100%;height:100%;object-fit:cover;display:block}\n' +
+'.meal-body{flex:1}\n' +
+'.meal-type{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0f9d58}\n' +
+'.meal-title{font-size:14px;font-weight:600;margin:2px 0}\n' +
+'.meal-meta{font-size:11.5px;color:#6c8078;font-weight:600}\n' +
+'.recipe-card{page-break-inside:avoid;padding:0;overflow:hidden}\n' +
+'.recipe-hero{height:200px;background:linear-gradient(135deg,#fef3c7,#fed7aa);display:grid;place-items:center;font-size:64px}\n' +
+'.recipe-hero img{width:100%;height:100%;object-fit:cover}\n' +
+'.recipe-card h3{padding:16px 20px 6px;font-size:18px;font-weight:800}\n' +
+'.recipe-meta{padding:0 20px 12px;font-size:12.5px;color:#6c8078;font-weight:600;border-bottom:1px solid #e4ece7}\n' +
+'.recipe-cols{display:grid;grid-template-columns:1fr 1.4fr;gap:20px;padding:16px 20px}\n' +
+'.recipe-cols h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:#6c8078;margin-bottom:8px;font-weight:800}\n' +
+'.recipe-cols ul,.recipe-cols ol{padding-left:18px;font-size:13.5px}\n' +
+'.recipe-cols li{margin-bottom:5px}\n' +
+'.recipe-cols ul{list-style:none;padding-left:0}\n' +
+'.recipe-cols ul li{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #e4ece7;gap:8px}\n' +
+'.recipe-cols ul li b{color:#0b7a44;font-weight:700}\n' +
+'.shop-cat{margin-bottom:16px}\n' +
+'.shop-cat h4{font-size:12px;font-weight:800;color:#0b7a44;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}\n' +
+'.shop-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0f4f1;font-size:13.5px}\n' +
+'.shop-item .checkbox{font-size:16px;color:#0f9d58}\n' +
+'.shop-item .shop-name{flex:1}\n' +
+'.shop-item .shop-qty{color:#6c8078;font-weight:700;font-size:12px}\n' +
+'.shop-item .shop-price{color:#0b7a44;font-weight:800;min-width:60px;text-align:right}\n' +
+'.totals{display:flex;justify-content:space-between;padding:14px 0;border-top:2px solid #e6f4ec;font-size:16px;font-weight:800;margin-top:8px}\n' +
+'@media print{body{background:#fff;padding:0}section{box-shadow:none;border:1px solid #ddd;page-break-inside:avoid}header{background:#0b7a44 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}\n' +
+'@media (max-width:600px){.recipe-cols{grid-template-columns:1fr}}\n' +
+'</style>\n</head>\n<body>\n<header>\n<h1>🥗 Меню с рецептами</h1>\n' +
+'<div class="meta">' + store.name + ' · ' + state.days + ' дней · ' + state.people + ' чел. · ' +
+  'бюджет ' + fmt(state.budget) + ' ₽ · цель: ' + getGoalLabel() + '<br>Дата: ' +
+  new Date().toLocaleDateString('ru-RU') + '</div>\n</header>\n' +
+'<section>\n<h2>📅 Меню по дням</h2>\n' + menuHTML + '</section>\n' +
+'<section>\n<h2>🍳 Рецепты</h2>\n' + recipesHTML + '</section>\n' +
+'<section>\n<h2>🛒 Список покупок</h2>\n' + shopHTML +
+  '<div class="totals"><span>Итого в «' + store.name + '»</span><span>' +
+  fmt(shopTotal) + ' ₽</span></div>\n</section>\n' +
+'<section style="text-align:center;color:#6c8078;font-size:12px;font-weight:600">\n' +
+'Создано в приложении «Питание по бюджету»\n</section>\n</body>\n</html>';
+  const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'menu-recipes-' + new Date().toISOString().slice(0,10) + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ============================================================
+   ОСНОВНОЙ РЕНДЕР
+   ============================================================ */
+function render(){
+  const plan = state.plan;
+  if (!plan.length){
+    document.getElementById('out').innerHTML =
+      '<div style="text-align:center;padding:40px 20px;color:var(--muted)">' +
+      '<div style="font-size:40px;margin-bottom:12px">🍽</div>' +
+      '<div style="font-weight:700">Готовим меню…</div></div>';
+    return;
+  }
+  const shopItems = buildShopList();
+  const shopTotal = shopItems.reduce((s, i) => s + i.cost, 0);
+  const budget = state.budget;
+  const store = STORES[state.store];
+  const dayTargetKcal = getDayTargetKcal();
+  const actualDayKcal = plan[0].meals.reduce((s,m) => s + mealKcal(m), 0);
+  const perPersonDay = planCost(plan) / (state.days * state.people);
+  const tier = perPersonDay < 180 ? 'Экономный'
+             : perPersonDay < 250 ? 'Сбалансированный'
+             : perPersonDay < 400 ? 'Комфортный' : 'Премиум';
+  const dayMacros = plan[0].meals.reduce((acc, m) => {
+    const mm = mealMacros(m);
+    acc.p += mm.p; acc.f += mm.f; acc.c += mm.c;
+    return acc;
+  }, {p:0, f:0, c:0});
+  const minPossible = (() => {
+    let best = Infinity;
+    for (let i = 0; i < 12; i++){
+      const c = planCost(buildPlan(i / 11));
+      if (c < best) best = c;
+    }
+    return best;
+  })();
+  const over = shopTotal > budget;
+  const lowBudget = minPossible > budget * 0.93;
+  let warn = '';
+  if (lowBudget){
+    warn = '<div class="warn">⚠️ В магазине «' + store.name +
+      '» бюджета не хватает даже на самый экономный вариант. Минимально нужно <b>' +
+      fmt(minPossible) + ' ₽</b>.</div>';
+  } else if (over){
+    warn = '<div class="warn">⚠️ Список покупок на ' + fmt(shopTotal - budget) +
+      ' ₽ дороже бюджета в «' + store.name + '».</div>';
+  }
+  const menuHTML = plan.map((day, di) => {
+    const kc = day.meals.reduce((s,m) => s + mealKcal(m), 0);
+    const cst = day.meals.reduce((s,m) => s + mealCost(m), 0);
+    const dm = day.meals.reduce((acc, m) => {
+      const mm = mealMacros(m);
+      acc.p += mm.p; acc.f += mm.f; acc.c += mm.c;
+      return acc;
+    }, {p:0, f:0, c:0});
+    return '<div class="day"><div class="day-h"><div>День ' + (di + 1) + '</div>' +
+      '<div class="meta"><span><b>' + Math.round(kc) + '</b> ккал</span>' +
+        '<span>Б <b>' + Math.round(dm.p) + '</b> Ж <b>' + Math.round(dm.f) + '</b> У <b>' + Math.round(dm.c) + '</b></span>' +
+        '<span><b>' + fmt(cst) + '</b> ₽</span></div></div>' +
+      day.meals.map((m, mi) => mealHTML(m, di, mi)).join('') + '</div>';
+  }).join('');
+  const grouped = {};
+  shopItems.forEach(it => {
+    const c = PRODUCTS[it.k].cat;
+    (grouped[c] = grouped[c] || []).push(it);
+  });
+  const shopHTML = CAT_ORDER.filter(c => grouped[c]).map(c => {
+    const items = grouped[c].sort((a,b) => b.cost - a.cost);
+    const catTotal = items.reduce((s,i) => s + i.cost, 0);
+    return '<div class="cat" data-cat="' + c + '"><div class="cat-h">' +
+      '<div class="cat-title">' + CATS[c].name + '</div>' +
+      '<span>' + fmt(catTotal) + ' ₽</span></div>' +
+      items.map(it => {
+        const done = state.checked.has(it.k);
+        const storeP = productPrice(it.k, state.store);
+        const srcHint = '<div class="src">' + store.name + ': ' + fmt(storeP) + ' ₽/' +
+          (PRODUCTS[it.k].unit === 'шт' ? 'шт' : PRODUCTS[it.k].unit) + '</div>';
+        const seasonTag = isInSeason(it.k) ? '<div class="season-tag">🌍 В сезоне</div>' : '';
+        return '<div class="item' + (done ? ' done' : '') + '" data-key="' + it.k + '">' +
+          '<div class="cb">✓</div>' +
+          '<div class="nm">' + PRODUCTS[it.k].name + srcHint + seasonTag + '</div>' +
+          '<div class="qt">' + fmtQty(it.k, it.q) + '</div>' +
+          '<div class="pr">' + fmt(it.cost) + ' ₽</div>' +
+          '<button class="search-btn" data-search-key="' + it.k + '">🔍</button></div>';
+      }).join('') + '</div>';
+  }).join('');
+  const compareData = compareStores();
+  const minCompare = Math.min(...Object.values(compareData));
+  const maxCompare = Math.max(...Object.values(compareData));
+  const compareHTML = '<div class="bar-list"><h3>Эта же корзина в других магазинах</h3>' +
+    Object.entries(compareData).sort((a,b) => a[1] - b[1]).map(([sid, cost]) => {
+      const s = STORES[sid];
+      const isBest = cost === minCompare;
+      const isCurrent = sid === state.store;
+      const pct = ((cost - minCompare) / minCompare) * 100;
+      const barW = maxCompare > minCompare ? ((cost - minCompare) / (maxCompare - minCompare)) * 100 : 50;
+      return '<div class="compare-row' + (isBest ? ' best' : '') + '">' +
+        '<div class="cs">' + s.name + (isCurrent ? ' •' : '') + '</div>' +
+        '<div class="cb"><div class="cf" style="width:' + Math.max(8, barW) + '%;background:' + s.color + '"></div></div>' +
+        '<div class="cv">' + fmt(cost) + ' ₽' + (pct > 0.5 ? ' +' + Math.round(pct) + '%' : '') + '</div></div>';
+    }).join('') +
+    '<div style="font-size:11px;color:var(--muted);margin-top:10px;text-align:center">' +
+      'Разница: <b>' + fmt(maxCompare - minCompare) + ' ₽</b></div></div>';
+  const savings = analyzeSavings();
+  const savingsHTML = savings.length === 0 ? '' :
+    '<div class="bar-list"><h3>💡 Советы по экономии</h3>' +
+      savings.map(t => '<div class="tip">День ' + t.day + ' · ' + t.meal + ': <b>' + t.current + '</b> (' + fmt(t.currentCost) + ' ₽)' +
+        ' → <b>' + t.alternative.n + '</b> (' + fmt(t.newCost) + ' ₽)' +
+        '<span class="save-badge">−' + fmt(t.save) + ' ₽</span>' +
+        '<button data-apply-tip="' + t.day + '" data-tip-mi="' + t.mi + '" data-tip-rid="' + t.alternative.id + '">Применить</button></div>').join('') +
+      '<div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">' +
+        'Всего можно сэкономить до <b>' + fmt(savings.reduce((s,x) => s + x.save, 0)) + ' ₽</b></div></div>';
+  const totalsHTML = renderTotals(plan);
+  const pwaHTML = (deferredPrompt && !state.pwaDismissed) ?
+    '<div class="pwa-banner" id="pwa-banner"><div class="icon">📱</div>' +
+      '<div class="body"><div class="t">Установить приложение</div>' +
+      '<div class="d">Работает офлайн, ярлык на экране</div></div>' +
+      '<button id="pwa-install">Установить</button></div>' : '';
+  const deliveryHTML = (state.store === 'pyaterochka') ?
+    '<div class="delivery-banner" id="delivery-banner"><div class="icon">🚚</div>' +
+      '<div class="body"><div class="t">Заказать в Пятёрочке</div>' +
+      '<div class="d">Поиск товаров в приложении</div></div>' +
+      '<button id="btn-delivery">Открыть</button></div>' : '';
+  const goalClass = state.goal === 'lose' ? 'goal-stat' : '';
+  const kcalDiff = Math.round(actualDayKcal - dayTargetKcal);
+  const kcalDiffText = Math.abs(kcalDiff) < 80 ? 'в цель' :
+    (kcalDiff > 0 ? '+' + kcalDiff : kcalDiff) + ' ккал';
+
+  document.getElementById('out').innerHTML = pwaHTML + warn +
+    '<div class="summary">' +
+      '<div class="stat main"><div class="v">' + fmt(shopTotal) + ' ₽</div>' +
+        '<div class="l">' + store.name + ' · бюджет ' + fmt(budget) + ' ₽</div></div>' +
+      '<div class="stat ' + goalClass + '"><div class="v">🎯 ' + getGoalLabel() + '</div>' +
+        '<div class="l">Цель · ' + fmt(dayTargetKcal) + ' ккал в день</div></div>' +
+      '<div class="stat"><div class="v">' + Math.round(actualDayKcal) + ' ккал</div>' +
+        '<div class="l">Факт в день · ' + kcalDiffText + '</div></div>' +
+      '<div class="stat"><div class="v">' + fmt(shopTotal / (state.days * state.people)) + ' ₽</div>' +
+        '<div class="l">На человека в день</div></div>' +
+      '<div class="stat"><div class="v">' + tier + '</div><div class="l">Тип рациона</div></div>' +
+      '<div class="stat"><div class="macros" style="margin-top:2px">' +
+        '<span>Б <b>' + Math.round(dayMacros.p) + '</b></span>' +
+        '<span>Ж <b>' + Math.round(dayMacros.f) + '</b></span>' +
+        '<span>У <b>' + Math.round(dayMacros.c) + '</b></span>' +
+      '</div><div class="l">БЖУ в день</div></div></div>' +
+    '<div class="tabs">' +
+      '<button class="tab' + (state.activeTab === 'menu' ? ' active' : '') + '" data-tab="menu">🍽 Меню</button>' +
+      '<button class="tab' + (state.activeTab === 'shop' ? ' active' : '') + '" data-tab="shop">🛒 Покупки</button>' +
+      '<button class="tab' + (state.activeTab === 'totals' ? ' active' : '') + '" data-tab="totals">📊 Итоги</button>' +
+      '<button class="tab' + (state.activeTab === 'tracker' ? ' active' : '') + '" data-tab="tracker">📅 Трекер</button>' +
+    '</div>' +
+    '<div class="tab-panel' + (state.activeTab === 'menu' ? ' active' : '') + '" id="panel-menu">' + menuHTML + '</div>' +
+    '<div class="tab-panel' + (state.activeTab === 'shop' ? ' active' : '') + '" id="panel-shop">' +
+      '<div class="search-wrap"><input type="search" id="search" placeholder="Поиск продукта..." value="' + state.search.replace(/"/g,'&quot;') + '"></div>' +
+      '<div id="shop-list">' + shopHTML + '</div>' +
+      '<div class="total"><span>Итого в «' + store.name + '»</span>' +
+        '<span class="big">' + fmt(shopTotal) + ' ₽</span></div>' +
+      '<div class="actions">' +
+        '<button id="copy-list">📋 Копировать</button>' +
+        '<button id="print-list">🖨 Печать</button>' +
+        '<button id="reset-checked">↺ Сбросить</button>' +
+        '<button id="export-menu" class="full">📖 Экспорт меню с рецептами</button>' +
+      '</div>' + deliveryHTML +
+      '<div class="note">Нажмите <b>🔍</b> у продукта, чтобы открыть приложение Пятёрочки.</div></div>' +
+    '<div class="tab-panel' + (state.activeTab === 'totals' ? ' active' : '') + '" id="panel-totals">' +
+      savingsHTML + compareHTML + totalsHTML + '</div>' +
+    '<div class="tab-panel' + (state.activeTab === 'tracker' ? ' active' : '') + '" id="panel-tracker">' +
+      renderTrackerPanel() + '</div>';
+  applySearch();
+  if (state.showPhotos){
+    allRecipes().forEach(r => { if (r.photo) applyPhotoToDom(r.id, r.photo); });
+  }
+}
+
+function dishHTML(recipe, portions, slot, dIdx, mIdx, isExtra){
+  const r = recipe;
+  const p = portions;
+  const mac = {p: r.macros.p * p, f: r.macros.f * p, c: r.macros.c * p, kcal: r.macros.kcal * p};
+  const emojiLen = [...r.emoji].length;
+  const emojiSize = emojiLen > 2 ? '22px' : '28px';
+  const showPhotos = state.showPhotos;
+  const ingList = Object.entries(r.ing).map(([k, q]) => {
+    const q2 = q * p;
+    const price = productPrice(k, state.store);
+    const season = isInSeason(k) ? ' 🌍' : '';
+    return '<li>' + PRODUCTS[k].name + ' — ' + fmtQty(k, q2) + season +
+      ' <span style="color:var(--muted);font-size:11px">(' + fmt(price) + ' ₽/' + PRODUCTS[k].unit + ')</span></li>';
+  }).join('');
+  const photoContent = showPhotos
+    ? (r.photo ? '<img src="' + r.photo + '" alt="" loading="lazy" onerror="this.remove()">'
+        : '<span class="emo" style="font-size:' + emojiSize + '">' + r.emoji + '</span>')
+    : '<span class="emo" style="font-size:' + emojiSize + '">' + r.emoji + '</span>';
+  return '<div class="dish-section ' + (isExtra ? 'extra' : 'main') + '">' +
+    (isExtra ? '<div class="dish-section-title">+ Дополнительное блюдо</div>' : '') +
+    '<div class="big-photo-wrap"><div class="big-photo ' + slot + '" data-photo-rid="' + r.id + '">' + photoContent + '</div>' +
+      (isExtra ? '' : '<div class="photo-btns">' +
+        '<button class="like' + (state.liked.has(r.id) ? ' on' : '') + '" data-like="' + r.id + '">❤</button>' +
+        '<button class="dislike' + (state.disliked.has(r.id) ? ' on' : '') + '" data-dislike="' + r.id + '">👎</button>' +
+        '<button data-regen-photo="' + r.id + '">🔄</button>' +
+        '<button data-edit-photo="' + r.id + '">🖼</button></div>') +
+    '</div>' +
+    '<button class="cook-btn' + (isExtra ? ' outline small' : '') + '" data-cook-rid="' + r.id + '" data-cook-p="' + p + '">🍳 Готовить' + (isExtra ? '' : ' пошагово') + '</button>' +
+    '<h4>Ингредиенты</h4><ul>' + ingList + '</ul>' +
+    '<h4>Приготовление</h4><ol>' + r.steps.map(s => '<li>' + s + '</li>').join('') + '</ol>' +
+  '</div>';
+}
+
+function mealHTML(m, dIdx, mIdx){
+  const r = m.recipe;
+  const key = dIdx + '-' + mIdx;
+  const open = state.openMeals.has(key);
+  const p = m.portions || 1;
+  const mm = mealMacros(m);
+  const isLiked = state.liked.has(r.id);
+  const isDisliked = state.disliked.has(r.id);
+  const isCustom = r.custom;
+  const emojiLen = [...r.emoji].length;
+  const emojiClass = emojiLen > 2 ? '' : 'single';
+  const seasonScore = recipeSeasonScore(r);
+  const isSeasonal = seasonScore > 0.4;
+  const portions = [0.5, 1, 1.5, 2].map(x =>
+    '<button class="portion-btn' + (p === x ? ' active' : '') + '" data-portion="' + x + '" data-pm="' + key + '">' +
+      (x === 0.5 ? '½' : x === 1.5 ? '1½' : x) + '</button>').join('');
+  const showPhotos = state.showPhotos;
+  const thumbContent = showPhotos
+    ? (r.photo ? '<img src="' + r.photo + '" alt="" loading="lazy" onerror="this.remove()">'
+        : '<span class="emo ' + emojiClass + '">' + r.emoji + '</span>')
+    : '<span class="emo ' + emojiClass + '">' + r.emoji + '</span>';
+  const extraHint = m.extra ? '<div class="meal-extra-hint">' + m.extra.n + ' · ' + Math.round(m.extra.macros.kcal * (m.extraPortions||1)) + ' ккал</div>' : '';
+
+  return '<div class="meal' + (open ? ' open' : '') + '" data-meal="' + key + '">' +
+    '<div class="meal-head" data-toggle="' + key + '">' +
+      '<div class="meal-photo ' + m.slot + (isLiked ? ' is-liked' : '') + (isSeasonal ? ' season' : '') +
+        '" data-photo-rid="' + r.id + '" data-rid="' + r.id + '">' + thumbContent + '</div>' +
+      '<div class="meal-info">' +
+        '<div class="meal-type-row"><span class="meal-type">' + MEAL_LABEL[m.slot] + '</span>' +
+          '<span class="meal-kcal-inline">' + Math.round(mm.kcal) + ' ккал · ' +
+            fmt(mealCost(m)) + ' ₽</span></div>' +
+        '<div class="meal-name">' + r.n +
+          (isCustom ? ' <span style="background:var(--accent);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:800">моё</span>' : '') +
+          (isSeasonal ? '<span class="season-badge">🌍</span>' : '') + '</div>' +
+        '<div class="meal-sub">Б ' + Math.round(mm.p) + ' · Ж ' + Math.round(mm.f) + ' · У ' + Math.round(mm.c) + '</div>' +
+        extraHint +
+      '</div>' +
+      '<div class="meal-actions">' +
+        '<button class="action-btn like' + (isLiked ? ' on' : '') + '" data-like="' + r.id + '">❤</button>' +
+        '<button class="action-btn dislike' + (isDisliked ? ' on' : '') + '" data-dislike="' + r.id + '">👎</button>' +
+        '<button class="action-btn swap" data-swap-d="' + dIdx + '" data-swap-m="' + mIdx + '">⇄</button>' +
+      '</div></div>' +
+    '<div class="meal-body">' +
+      '<div class="portion-row"><span>Порция</span>' + portions +
+        '<span class="portion-hint">' + fmt(mealCost(m)) + ' ₽</span></div>' +
+      dishHTML(r, p, m.slot, dIdx, mIdx, false) +
+      (m.extra ? dishHTML(m.extra, m.extraPortions || 1, m.slot, dIdx, mIdx, true) : '') +
+    '</div></div>';
+}
+
+function renderTotals(plan){
+  let totalP = 0, totalF = 0, totalC = 0, totalKcal = 0, totalCost = 0;
+  const rows = plan.map((day, i) => {
+    const dm = day.meals.reduce((acc, m) => {
+      const mm = mealMacros(m);
+      acc.p += mm.p; acc.f += mm.f; acc.c += mm.c; acc.kcal += mm.kcal;
+      return acc;
+    }, {p:0, f:0, c:0, kcal:0});
+    const cst = day.meals.reduce((s,m) => s + mealCost(m), 0);
+    totalP += dm.p; totalF += dm.f; totalC += dm.c;
+    totalKcal += dm.kcal; totalCost += cst;
+    return '<tr><td>День ' + (i + 1) + '</td><td>' + Math.round(dm.kcal) + '</td>' +
+      '<td>' + Math.round(dm.p) + '</td><td>' + Math.round(dm.f) + '</td>' +
+      '<td>' + Math.round(dm.c) + '</td><td>' + fmt(cst) + '</td></tr>';
+  }).join('');
+  const n = plan.length;
+  const table = '<table class="totals-table">' +
+    '<thead><tr><th>День</th><th>Ккал</th><th>Б</th><th>Ж</th><th>У</th><th>₽</th></tr></thead>' +
+    '<tbody>' + rows +
+      '<tr><td>Среднее</td><td>' + Math.round(totalKcal / n) + '</td><td>' + Math.round(totalP / n) + '</td>' +
+        '<td>' + Math.round(totalF / n) + '</td><td>' + Math.round(totalC / n) + '</td>' +
+        '<td>' + fmt(totalCost / n) + '</td></tr>' +
+      '<tr><td>Всего</td><td>' + Math.round(totalKcal) + '</td><td>' + Math.round(totalP) + '</td>' +
+        '<td>' + Math.round(totalF) + '</td><td>' + Math.round(totalC) + '</td>' +
+        '<td>' + fmt(totalCost) + '</td></tr>' +
+    '</tbody></table>';
+  const dayKcalArr = plan.map(day => day.meals.reduce((s,m) => s + mealKcal(m), 0));
+  const maxKcal = Math.max(...dayKcalArr, 1);
+  const avgKcal = dayKcalArr.reduce((s,x) => s+x, 0) / n;
+  const bars = dayKcalArr.map((k, i) =>
+    '<div class="bar-row"><div class="lbl">День ' + (i + 1) + '</div>' +
+      '<div class="bar"><div class="fill" style="width:' + ((k / maxKcal) * 100) + '%"></div></div>' +
+      '<div class="val">' + Math.round(k) + '</div></div>').join('');
+  const chart = '<div class="bar-list"><h3>Калории по дням · среднее <span class="avg">' +
+    Math.round(avgKcal) + ' ккал</span></h3>' + bars + '</div>';
+  const avgP = totalP / n, avgF = totalF / n, avgC = totalC / n;
+  const avgK = totalKcal / n;
+  const pPct = Math.round((avgP * 4 / avgK) * 100);
+  const fPct = Math.round((avgF * 9 / avgK) * 100);
+  const cPct = Math.round((avgC * 4 / avgK) * 100);
+  const balance = '<div class="bar-list"><h3>Баланс БЖУ в среднем</h3>' +
+    '<div class="bar-row"><div class="lbl">Белки</div>' +
+      '<div class="bar"><div class="fill" style="width:' + pPct + '%;background:linear-gradient(90deg,#60a5fa,#3b82f6)"></div></div>' +
+      '<div class="val">' + Math.round(avgP) + ' г</div></div>' +
+    '<div class="bar-row"><div class="lbl">Жиры</div>' +
+      '<div class="bar"><div class="fill" style="width:' + fPct + '%;background:linear-gradient(90deg,#fbbf24,#f59e0b)"></div></div>' +
+      '<div class="val">' + Math.round(avgF) + ' г</div></div>' +
+    '<div class="bar-row"><div class="lbl">Углев.</div>' +
+      '<div class="bar"><div class="fill" style="width:' + cPct + '%;background:linear-gradient(90deg,#34d399,#22c55e)"></div></div>' +
+      '<div class="val">' + Math.round(avgC) + ' г</div></div>' +
+    '<div class="legend"><span class="p">Белки ' + pPct + '%</span>' +
+      '<span class="f">Жиры ' + fPct + '%</span>' +
+      '<span class="c">Углеводы ' + cPct + '%</span></div></div>';
+  return table + chart + balance;
+}
+
+function renderTrackerPanel(){
+  const today = new Date();
+  const y = today.getFullYear(), m = today.getMonth();
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  const monthName = today.toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'});
+  let cells = '';
+  for (let i = 0; i < offset; i++) cells += '<div></div>';
+  for (let d = 1; d <= daysInMonth; d++){
+    const key = y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const eaten = !!state.tracker[key];
+    const isToday = d === today.getDate();
+    cells += '<div class="tracker-day' + (eaten ? ' eaten' : '') + (isToday ? ' today' : '') +
+      '" data-tracker-date="' + key + '"><div class="dn">' + d + '</div>' +
+      (eaten ? '<div class="dv">✓</div>' : '') + '</div>';
+  }
+  let streak = 0;
+  for (let i = 0; i < 400; i++){
+    const dd = new Date(today);
+    dd.setDate(dd.getDate() - i);
+    const k = dd.toISOString().slice(0,10);
+    if (state.tracker[k]) streak++;
+    else if (i > 0) break;
+  }
+  const totalEaten = Object.keys(state.tracker).filter(k => state.tracker[k]).length;
+  const thisMonth = Object.keys(state.tracker).filter(k =>
+    k.startsWith(y + '-' + String(m+1).padStart(2,'0')) && state.tracker[k]).length;
+  return '<div class="bar-list"><h3>📅 Трекер питания — ' + monthName + '</h3>' +
+    '<div class="tracker-grid">' + cells + '</div>' +
+    '<div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">' +
+      '<div class="streak-badge">🔥 <span class="num">' + streak + '</span> дней подряд</div>' +
+      '<div style="font-size:12px;color:var(--muted);font-weight:700">Всего: <b>' + totalEaten +
+        '</b><br>В этом месяце: <b>' + thisMonth + '</b></div></div></div>';
+}
+
+function applySearch(){
+  const q = state.search.trim().toLowerCase();
+  document.querySelectorAll('#shop-list .item').forEach(el => {
+    const key = el.dataset.key;
+    el.style.display = (!q || PRODUCTS[key].name.toLowerCase().includes(q)) ? '' : 'none';
+  });
+  document.querySelectorAll('#shop-list .cat').forEach(cat => {
+    cat.style.display = [...cat.querySelectorAll('.item')].some(el => el.style.display !== 'none') ? '' : 'none';
+  });
+}
+function togglePreference(recipeId, kind){
+  const set = kind === 'like' ? state.liked : state.disliked;
+  const other = kind === 'like' ? state.disliked : state.liked;
+  if (set.has(recipeId)) set.delete(recipeId);
+  else { set.add(recipeId); other.delete(recipeId); }
+  saveState();
+  document.querySelectorAll('[data-like="' + recipeId + '"]').forEach(b =>
+    b.classList.toggle('on', state.liked.has(recipeId)));
+  document.querySelectorAll('[data-dislike="' + recipeId + '"]').forEach(b =>
+    b.classList.toggle('on', state.disliked.has(recipeId)));
+  document.querySelectorAll('.meal-photo[data-rid="' + recipeId + '"]').forEach(el =>
+    el.classList.toggle('is-liked', state.liked.has(recipeId)));
+}
+function toggleTracker(date){
+  if (state.tracker[date]) delete state.tracker[date];
+  else state.tracker[date] = true;
+  saveState(); render();
+}
+
+function renderCatalog(){
+  const el = document.getElementById('recipe-catalog');
+  if (!el) return;
+  let recipes = allRecipes();
+  if (state.catalogFilter !== 'all') recipes = recipes.filter(r => r.m === state.catalogFilter);
+  const sort = state.catalogSort;
+  if (sort === 'name') recipes.sort((a,b) => a.n.localeCompare(b.n, 'ru'));
+  else if (sort === 'price') recipes.sort((a,b) => recipeCost(a, state.store) - recipeCost(b, state.store));
+  else if (sort === 'kcal') recipes.sort((a,b) => a.macros.kcal - b.macros.kcal);
+  else if (sort === 'protein') recipes.sort((a,b) => b.macros.p - a.macros.p);
+  if (recipes.length === 0){
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Нет рецептов</div>';
+    return;
+  }
+  el.innerHTML = recipes.map(r => {
+    const isLiked = state.liked.has(r.id);
+    const isDisliked = state.disliked.has(r.id);
+    const emojiLen = [...r.emoji].length;
+    const emojiSize = emojiLen > 2 ? '15px' : '20px';
+    const photo = (state.showPhotos && r.photo)
+      ? '<img src="' + r.photo + '" alt="" loading="lazy" onerror="this.remove()">'
+      : '<span style="font-size:' + emojiSize + '">' + r.emoji + '</span>';
+    return '<div class="catalog-item"><div class="ci-photo' + (isLiked ? ' is-liked' : '') +
+      '" data-photo-rid="' + r.id + '" data-rid="' + r.id + '">' + photo + '</div>' +
+      '<div class="ci-info"><div class="ci-name">' + r.n + (r.custom ? ' · моё' : '') + '</div>' +
+        '<div class="ci-sub">' + MEAL_LABEL[r.m] + ' · ' + Math.round(r.macros.kcal) + ' ккал · ' +
+          fmt(recipeCost(r, state.store)) + ' ₽</div></div>' +
+      '<div class="ci-btns">' +
+        '<button class="action-btn like' + (isLiked ? ' on' : '') + '" data-like="' + r.id + '">❤</button>' +
+        '<button class="action-btn dislike' + (isDisliked ? ' on' : '') + '" data-dislike="' + r.id + '">👎</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function openRecipesModal(){
+  state.modalMode = 'recipes';
+  document.getElementById('modal-title').textContent = 'Рецепты и каталог';
+  const body = document.getElementById('modal-body');
+  nrIngredients = [];
+  body.innerHTML =
+    '<details class="catalog-section" open><summary>📚 Каталог рецептов</summary>' +
+      '<div class="catalog-filter" id="catalog-filter">' +
+        '<button data-filter="all" class="active">Все</button>' +
+        '<button data-filter="breakfast">Завтрак</button>' +
+        '<button data-filter="lunch">Обед</button>' +
+        '<button data-filter="dinner">Ужин</button>' +
+        '<button data-filter="snack">Перекус</button></div>' +
+      '<div class="catalog-sort" id="catalog-sort"><span>Сортировка:</span>' +
+        '<button data-sort="name" class="active">Название</button>' +
+        '<button data-sort="price">Цена</button>' +
+        '<button data-sort="kcal">Ккал</button>' +
+        '<button data-sort="protein">Белки</button></div>' +
+      '<div id="recipe-catalog"></div></details>' +
+    '<details class="catalog-section"><summary>✍️ Добавить свой рецепт</summary>' +
+      '<label>Название<input type="text" id="nr-name" placeholder="Например, Овсяноблин"></label>' +
+      '<label>Приём пищи<select id="nr-meal"><option value="breakfast">Завтрак</option>' +
+        '<option value="lunch">Обед</option><option value="dinner">Ужин</option>' +
+        '<option value="snack">Перекус</option></select></label>' +
+      '<div class="section-title">Ингредиенты (на 1 порцию)</div>' +
+      '<div id="nr-ing-list"></div>' +
+      '<div class="add-ing"><select id="nr-ing-key"></select>' +
+        '<input type="number" id="nr-ing-qty" placeholder="Кол-во" min="1" inputmode="numeric">' +
+        '<button id="nr-ing-add" type="button">+</button></div>' +
+      '<div class="section-title">Приготовление</div>' +
+      '<textarea id="nr-steps" placeholder="Взбейте яйца&#10;Добавьте овсянку"></textarea>' +
+      '<button class="primary" id="nr-save" style="margin-top:14px">Сохранить</button></details>' +
+    '<details class="catalog-section"><summary>🍳 Мои рецепты (<span id="my-count">0</span>)</summary>' +
+      '<div id="my-list" style="margin-top:10px"></div></details>';
+  renderNrIngredients();
+  renderProductSelect();
+  renderMyRecipes();
+  renderCatalog();
+  hydratePhotos();
+  document.getElementById('modal-backdrop').classList.add('open');
+  document.getElementById('modal-recipes').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modal-backdrop').classList.remove('open');
+  document.getElementById('modal-recipes').classList.remove('open');
+  state.modalMode = null;
+}
+function renderProductSelect(){
+  const sel = document.getElementById('nr-ing-key');
+  if (!sel) return;
+  const cats = {};
+  Object.entries(PRODUCTS).forEach(([k, v]) => {
+    (cats[v.cat] = cats[v.cat] || []).push([k, v]);
+  });
+  sel.innerHTML = CAT_ORDER.map(c =>
+    '<optgroup label="' + CATS[c].name + '">' +
+      cats[c].map(([k, v]) => '<option value="' + k + '">' + v.name + ' (' +
+        (v.unit === 'шт' ? 'шт' : v.unit === 'л' ? 'мл' : 'г') + ')</option>').join('') +
+    '</optgroup>').join('');
+}
+function renderNrIngredients(){
+  const el = document.getElementById('nr-ing-list');
+  if (!el) return;
+  if (nrIngredients.length === 0){
+    el.innerHTML = '<div style="color:var(--muted);font-size:12.5px;padding:8px 0">Пока нет ингредиентов.</div>';
+    return;
+  }
+  el.innerHTML = nrIngredients.map((ing, i) =>
+    '<div class="ing-row"><span class="nm">' + PRODUCTS[ing.k].name + '</span>' +
+      '<span class="qt">' + fmtQty(ing.k, ing.q) + '</span>' +
+      '<button class="rm" data-rm-ing="' + i + '" type="button">×</button></div>').join('');
+}
+function renderMyRecipes(){
+  const el = document.getElementById('my-list');
+  const cnt = document.getElementById('my-count');
+  if (cnt) cnt.textContent = state.customRecipes.length;
+  if (!el) return;
+  if (state.customRecipes.length === 0){
+    el.innerHTML = '<div style="color:var(--muted);font-size:12.5px;padding:8px 0">Нет сохранённых рецептов</div>';
+    return;
+  }
+  el.innerHTML = state.customRecipes.map(r =>
+    '<div class="my-recipe"><div class="info"><div class="n">' + r.n + '</div>' +
+      '<div class="s">' + MEAL_LABEL[r.m] + ' · ' + Math.round(r.macros.kcal) + ' ккал · ' +
+        fmt(recipeCost(r, state.store)) + ' ₽</div></div>' +
+      '<button class="del" data-del-custom="' + r.id + '" type="button">🗑</button></div>').join('');
+}
+function saveCustomRecipe(){
+  const name = document.getElementById('nr-name').value.trim();
+  const meal = document.getElementById('nr-meal').value;
+  const stepsRaw = document.getElementById('nr-steps').value.trim();
+  if (!name){ alert('Введите название'); return; }
+  if (nrIngredients.length === 0){ alert('Добавьте ингредиент'); return; }
+  const ing = {};
+  nrIngredients.forEach(x => ing[x.k] = (ing[x.k] || 0) + x.q);
+  const rec = {id: 'c' + Date.now(), n: name, m: meal, emoji: '🍽', ing,
+    steps: stepsRaw ? stepsRaw.split('\n').map(s => s.trim()).filter(Boolean) : ['Приготовьте по вкусу.'],
+    custom: true, photo: null};
+  rec.macros = recipeMacros(rec);
+  state.customRecipes.push(rec);
+  state.liked.add(rec.id);
+  saveState();
+  nrIngredients = [];
+  document.getElementById('nr-name').value = '';
+  document.getElementById('nr-steps').value = '';
+  renderNrIngredients();
+  renderMyRecipes();
+  renderCatalog();
+  generate();
+}
+function openPhotoModal(recipeId){
+  const r = allRecipes().find(x => x.id === recipeId);
+  if (!r) return;
+  state.modalMode = 'photo';
+  document.getElementById('modal-title').textContent = '🖼 Фото: ' + r.n;
+  const tags = r.n.split(/\s+/).slice(0, 3).join(',');
+  const flickrUrls = Array.from({length: 6}, (_, i) =>
+    'https://loremflickr.com/400/300/' + encodeURIComponent(tags) + '/all?random=' + (i+1));
+  const body = document.getElementById('modal-body');
+  body.innerHTML =
+    '<div class="photo-picker"><h4>Варианты фото</h4><div class="preset-grid" id="preset-grid">' +
+      flickrUrls.map(u => '<div class="preset-item" data-photo-pick="' + u + '">' +
+        '<img src="' + u + '" alt="" loading="lazy" onerror="this.parentElement.innerHTML=\'<span style=&quot;font-size:11px;color:var(--muted)&quot;>✕</span>\'">' +
+      '</div>').join('') + '</div>' +
+      '<button class="secondary" id="reload-presets" style="width:100%;padding:13px;border:1.5px solid var(--border);background:var(--card);color:var(--text);border-radius:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔄 Другие варианты</button></div>' +
+    '<div class="photo-picker"><h4>Свой URL фото</h4>' +
+      '<input type="url" id="photo-url-input" placeholder="https://example.com/photo.jpg" value="' + (userPhotos[recipeId] || '') + '" style="width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:13px;background:var(--bg);color:var(--text);outline:none;font-family:inherit;font-weight:600">' +
+      '<div style="display:flex;gap:8px;margin-top:10px">' +
+        '<button class="primary" id="save-photo-url" style="flex:2;padding:13px;border:none;border-radius:13px;background:linear-gradient(140deg,#12a862,#0a7a45);color:#fff;font-weight:800;font-family:inherit;font-size:14px">Сохранить</button>' +
+        '<button class="secondary" id="clear-photo-url" style="flex:1;padding:13px;border:1.5px solid var(--border);background:var(--card);color:var(--text);border-radius:13px;font-weight:700;font-family:inherit;font-size:14px">Сбросить</button></div></div>';
+  body.querySelectorAll('[data-photo-pick]').forEach(el => {
+    el.addEventListener('click', () => {
+      setUserPhoto(recipeId, el.dataset.photoPick);
+      body.querySelectorAll('.preset-item').forEach(x => x.classList.remove('selected'));
+      el.classList.add('selected');
+    });
+  });
+  const reload = body.querySelector('#reload-presets');
+  if (reload) reload.addEventListener('click', () => {
+    const grid = body.querySelector('#preset-grid');
+    const newUrls = Array.from({length: 6}, (_, i) =>
+      'https://loremflickr.com/400/300/' + encodeURIComponent(tags) + '/all?random=' + (Date.now() + i));
+    grid.innerHTML = newUrls.map(u => '<div class="preset-item" data-photo-pick="' + u + '">' +
+      '<img src="' + u + '" alt="" loading="lazy" onerror="this.parentElement.innerHTML=\'<span style=&quot;font-size:11px;color:var(--muted)&quot;>✕</span>\'"></div>').join('');
+    grid.querySelectorAll('[data-photo-pick]').forEach(el => {
+      el.addEventListener('click', () => {
+        setUserPhoto(recipeId, el.dataset.photoPick);
+        grid.querySelectorAll('.preset-item').forEach(x => x.classList.remove('selected'));
+        el.classList.add('selected');
+      });
+    });
+  });
+  const saveBtn = body.querySelector('#save-photo-url');
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    setUserPhoto(recipeId, body.querySelector('#photo-url-input').value.trim());
+    closeModal();
+  });
+  const clearBtn = body.querySelector('#clear-photo-url');
+  if (clearBtn) clearBtn.addEventListener('click', () => {
+    setUserPhoto(recipeId, null);
+    body.querySelector('#photo-url-input').value = '';
+    regeneratePhoto(recipeId, r.n);
+  });
+  document.getElementById('modal-backdrop').classList.add('open');
+  document.getElementById('modal-recipes').classList.add('open');
+}
+
+let swapCtx = null;
+function openSwapSheet(dIdx, mIdx){
+  const meal = state.plan[dIdx].meals[mIdx];
+  const pool = getPool(meal.slot, true);
+  const alternatives = pool.filter(r => r.id !== meal.recipe.id);
+  swapCtx = {dIdx, mIdx};
+  document.getElementById('sheet-title').textContent = 'Заменить: ' + MEAL_LABEL[meal.slot];
+  const list = document.getElementById('sheet-list');
+  if (alternatives.length === 0){
+    list.innerHTML = '<div class="no-alt">Нет альтернатив</div>';
+  } else {
+    list.innerHTML = alternatives.map(r => {
+      const isLiked = state.liked.has(r.id);
+      const emojiLen = [...r.emoji].length;
+      const emojiSize = emojiLen > 2 ? '15px' : '20px';
+      const photo = (state.showPhotos && r.photo)
+        ? '<img src="' + r.photo + '" alt="" loading="lazy" onerror="this.remove()">'
+        : '<span style="font-size:' + emojiSize + '">' + r.emoji + '</span>';
+      return '<div class="alt' + (isLiked ? ' is-liked' : '') + '" data-alt-id="' + r.id + '">' +
+        '<div class="alt-photo" data-photo-rid="' + r.id + '">' + photo + '</div>' +
+        '<div class="an">' + r.n + (r.custom ? ' · моё' : '') + '</div>' +
+        '<div class="am">' + Math.round(r.macros.kcal) + ' ккал<br>' + fmt(recipeCost(r, state.store)) + ' ₽</div></div>';
+    }).join('');
+  }
+  document.getElementById('sheet-backdrop').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+  hydratePhotos();
+}
+function closeSwapSheet(){
+  document.getElementById('sheet-backdrop').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+  swapCtx = null;
+}
+function doSwap(recipeId){
+  if (!swapCtx) return;
+  const r = allRecipes().find(x => x.id === recipeId);
+  if (!r) return;
+  state.plan[swapCtx.dIdx].meals[swapCtx.mIdx].recipe = r;
+  saveState(); closeSwapSheet(); render(); hydratePhotos();
+}
+function setPortions(dIdx, mIdx, val){
+  const meal = state.plan[dIdx].meals[mIdx];
+  if (!meal) return;
+  meal.portions = val;
+  saveState(); render();
+}
+
+function openCookMode(recipeId, portions){
+  const r = allRecipes().find(x => x.id === recipeId);
+  if (!r) return;
+  const stepMins = r.steps.map(extractMinutes);
+  cookState = { recipe: r, step: 0, portions: portions || 1,
+    stepMins, timerSec: 0, timerRunning: false, timerMins: stepMins[0] };
+  renderCookMode();
+  document.getElementById('cook-modal').classList.add('open');
+}
+function closeCookMode(){ stopCookTimer();
+  document.getElementById('cook-modal').classList.remove('open'); cookState = null; }
+function stopCookTimer(){ if (cookTimerInterval){ clearInterval(cookTimerInterval); cookTimerInterval = null; } }
+function startCookTimer(){
+  if (!cookState || !cookState.timerMins) return;
+  cookState.timerSec = cookState.timerMins * 60;
+  cookState.timerRunning = true;
+  stopCookTimer();
+  cookTimerInterval = setInterval(() => {
+    if (!cookState || !cookState.timerRunning) return;
+    cookState.timerSec--;
+    if (cookState.timerSec <= 0){
+      cookState.timerRunning = false;
+      stopCookTimer();
+      notifyTimerDone();
+    }
+    updateCookTimerDisplay();
+  }, 1000);
+  updateCookTimerDisplay();
+}
+function pauseCookTimer(){ if (!cookState) return; cookState.timerRunning = false;
+  stopCookTimer(); updateCookTimerDisplay(); }
+function resetCookTimer(){ if (!cookState) return; cookState.timerRunning = false;
+  cookState.timerSec = 0; stopCookTimer(); updateCookTimerDisplay(); }
+function notifyTimerDone(){
+  try{ if (navigator.vibrate) navigator.vibrate([300,100,300,100,500]); }catch(e){}
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0,0.25,0.5].forEach(delay => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.25);
+    });
+  }catch(e){}
+  if (confirm('⏰ Таймер завершён!')) resetCookTimer();
+}
+function updateCookTimerDisplay(){
+  const el = document.getElementById('cook-timer-clock');
+  const btn = document.getElementById('cook-timer-btn');
+  if (!el || !cookState) return;
+  if (cookState.timerSec > 0){
+    const m = Math.floor(cookState.timerSec / 60);
+    const s = cookState.timerSec % 60;
+    el.textContent = m + ':' + String(s).padStart(2,'0');
+    el.classList.toggle('running', cookState.timerRunning);
+  } else {
+    el.textContent = cookState.timerMins ? cookState.timerMins + ':00' : '—';
+    el.classList.remove('running');
+  }
+  if (btn){
+    if (cookState.timerRunning) btn.textContent = '⏸ Пауза';
+    else if (cookState.timerSec > 0) btn.textContent = '▶ Продолжить';
+    else btn.textContent = '▶ Запустить';
+  }
+}
+function renderCookMode(){
+  if (!cookState) return;
+  const {recipe: r, step, portions: p, stepMins} = cookState;
+  const total = r.steps.length;
+  document.getElementById('cook-title').textContent = r.n;
+  document.getElementById('cook-sub').textContent =
+    MEAL_LABEL[r.m] + ' · порция ×' + p + ' · ' + r.steps.length + ' шагов';
+  const emojiLen = [...r.emoji].length;
+  const emojiSize = emojiLen > 2 ? '76px' : '90px';
+  const photoContent = (state.showPhotos && r.photo)
+    ? '<img src="' + r.photo + '" alt="" onerror="this.remove()">'
+    : '<span class="emo" style="font-size:' + emojiSize + '">' + r.emoji + '</span>';
+  const dots = r.steps.map((_, i) =>
+    '<div class="dot ' + (i < step ? 'done' : '') + ' ' + (i === step ? 'current' : '') + '"></div>').join('');
+  const currentStep = r.steps[step] || '';
+  const minutes = stepMins[step];
+  const ingList = Object.entries(r.ing).map(([k, q]) =>
+    '<li><span>' + PRODUCTS[k].name + '</span><span class="iq">' + fmtQty(k, q * p) + '</span></li>').join('');
+  const timerHTML = minutes ?
+    '<div class="cook-timer"><div class="clock" id="cook-timer-clock">' + minutes + ':00</div>' +
+      '<button id="cook-timer-btn">▶ Запустить</button></div>' : '';
+  document.getElementById('cook-body').innerHTML =
+    '<div class="cook-photo" data-photo-rid="' + r.id + '">' + photoContent + '</div>' +
+    '<div class="cook-progress">' + dots + '</div>' +
+    '<div class="cook-content"><div class="cook-step-num">Шаг ' + (step + 1) + ' из ' + total + '</div>' +
+      '<div class="cook-step-text">' + currentStep + '</div>' + timerHTML +
+      '<div class="cook-ing-h">Ингредиенты (порция ×' + p + ')</div>' +
+      '<ul class="cook-ing-list">' + ingList + '</ul></div>';
+  document.getElementById('cook-prev').disabled = step === 0;
+  document.getElementById('cook-next').textContent = step === total - 1 ? '✓ Готово' : 'Далее →';
+  hydratePhotos();
+}
+
+async function copyShopList(){
+  const shopItems = buildShopList();
+  const grouped = {};
+  shopItems.forEach(it => {
+    const c = PRODUCTS[it.k].cat;
+    (grouped[c] = grouped[c] || []).push(it);
+  });
+  const lines = ['🛒 Список покупок — ' + STORES[state.store].name,
+    'Итого: ' + fmt(shopItems.reduce((s,i) => s + i.cost, 0)) + ' ₽', ''];
+  CAT_ORDER.forEach(c => {
+    if (!grouped[c]) return;
+    lines.push(CATS[c].name);
+    grouped[c].forEach(it => lines.push('  • ' + PRODUCTS[it.k].name + ' — ' + fmtQty(it.k, it.q) + ' (' + fmt(it.cost) + ' ₽)'));
+    lines.push('');
+  });
+  const text = lines.join('\n');
+  try{
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copy-list');
+    if (btn){
+      const orig = btn.textContent;
+      btn.textContent = '✓ Скопировано';
+      setTimeout(() => btn.textContent = orig, 1400);
+    }
+  }catch(err){ alert('Список:\n\n' + text); }
+}
+function applyTheme(){
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const t = state.theme === 'auto' ? (prefersDark ? 'dark' : 'light') : state.theme;
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
+}
+function toggleTheme(){
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const current = state.theme === 'auto' ? (prefersDark ? 'dark' : 'light') : state.theme;
+  state.theme = current === 'dark' ? 'light' : 'dark';
+  saveState(); applyTheme();
+}
+function renderExcludeChips(){
+  const el = document.getElementById('exclude-chips');
+  if (!el) return;
+  el.innerHTML = EXCLUDABLE.map(k => {
+    const on = state.excluded.has(k);
+    return '<div class="chip' + (on ? ' on' : '') + '" data-ex="' + k + '">' + PRODUCTS[k].name + '</div>';
+  }).join('');
+}
+function renderStoreList(){
+  const el = document.getElementById('store-list');
+  if (!el) return;
+  el.innerHTML = Object.values(STORES).map(s =>
+    '<button class="store-card' + (s.id === state.store ? ' active' : '') + '" data-store-id="' + s.id + '">' +
+      '<div class="sc-logo" style="background:' + s.color + '">' + s.letter + '</div>' +
+      '<div class="sc-info"><div class="sc-name">' + s.name + '</div>' +
+        '<div class="sc-desc">' + s.desc + '</div></div>' +
+      '<div class="sc-check">✓</div></button>').join('');
+}
+function renderPresets(){
+  const el = document.getElementById('budget-presets');
+  if (!el) return;
+  el.innerHTML = PRESETS.map(p => {
+    const total = p.perDay * p.days * p.people;
+    return '<button class="preset-btn" data-preset="' + p.id + '">' +
+      '<div class="pn"><span class="preset-icon">' + p.icon + '</span>' + p.name + '</div>' +
+      '<div class="preset-price">' + fmt(total) + ' ₽</div>' +
+      '<div class="ps"><div class="ps-row"><span>На день:</span><b>' + fmt(p.perDay) + ' ₽</b></div>' +
+        '<div class="ps-row"><span>Период:</span><b>' + p.days + ' дн. × ' + p.people + ' чел.</b></div>' +
+      '</div></button>';
+  }).join('');
+}
+function applyPreset(id){
+  const p = PRESETS.find(x => x.id === id);
+  if (!p) return;
+  const total = p.perDay * p.days * p.people;
+  document.getElementById('budget').value = total;
+  document.getElementById('days').value = p.days;
+  document.getElementById('people').value = p.people;
+  state.budget = total; state.days = p.days; state.people = p.people;
+  saveState();
+  document.querySelectorAll('.preset-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.preset === id));
+}
+function setStore(sid){
+  if (!STORES[sid] || sid === state.store) return;
+  state.store = sid;
+  saveState(); renderStoreList();
+}
+function setGoal(g){
+  state.goal = g;
+  const wrap = document.getElementById('custom-kcal-wrap');
+  if (wrap) wrap.style.display = g === 'calories' ? 'block' : 'none';
+  document.querySelectorAll('.goal-card').forEach(el => {
+    el.classList.toggle('active', el.dataset.goal === g);
+  });
+  saveState();
+}
+
+/* ============================================================
+   СОБЫТИЯ
+   ============================================================ */
+document.addEventListener('click', e => {
+  const goBtn = e.target.closest('[data-go]');
+  if (goBtn){
+    const target = +goBtn.dataset.go;
+    if (target === 6){ generate(); goToStep(6); }
+    else { readFormToState(); goToStep(target); }
+    return;
+  }
+  if (e.target.closest('#back-btn')){
+    if (state.step > 1) goToStep(state.step - 1);
+    return;
+  }
+  if (e.target.closest('#new-plan-btn')){ goToStep(1); return; }
+
+  const stepBtn = e.target.closest('[data-step-target]');
+  if (stepBtn){
+    const input = document.getElementById(stepBtn.dataset.stepTarget);
+    if (input){
+      let v = (parseFloat(input.value) || 0) + parseInt(stepBtn.dataset.delta);
+      v = Math.max(parseFloat(input.min) || 0, Math.min(parseFloat(input.max) || 999999, v));
+      input.value = v;
+      readFormToState();
+    }
+    return;
+  }
+
+  const goalCard = e.target.closest('[data-goal]');
+  if (goalCard){ setGoal(goalCard.dataset.goal); return; }
+
+  const preset = e.target.closest('[data-preset]');
+  if (preset){ applyPreset(preset.dataset.preset); return; }
+
+  const storeCard = e.target.closest('[data-store-id]');
+  if (storeCard){ setStore(storeCard.dataset.storeId); return; }
+
+  const swipeFilter = e.target.closest('[data-swipe-filter]');
+  if (swipeFilter){
+    state.swipeFilter = swipeFilter.dataset.swipeFilter;
+    document.querySelectorAll('[data-swipe-filter]').forEach(b =>
+      b.classList.toggle('active', b === swipeFilter));
+    initSwipeStep();
+    return;
+  }
+  if (e.target.closest('#swipe-like')){ swipeCurrentCard('like'); return; }
+  if (e.target.closest('#swipe-dislike')){ swipeCurrentCard('dislike'); return; }
+  if (e.target.closest('#swipe-undo')){ undoLastSwipe(); return; }
+
+  const searchBtn = e.target.closest('[data-search-key]');
+  if (searchBtn){ e.stopPropagation(); openProductInPyaterochka(searchBtn.dataset.searchKey); return; }
+
+  if (e.target.closest('#btn-delivery') || e.target.closest('#delivery-banner button')){
+    openProductsSearchModal(); return;
+  }
+
+  const regenBtn = e.target.closest('[data-regen-photo]');
+  if (regenBtn){
+    e.stopPropagation();
+    const rid = regenBtn.dataset.regenPhoto;
+    const r = allRecipes().find(x => x.id === rid);
+    if (r) regeneratePhoto(rid, r.n);
+    return;
+  }
+  const editBtn = e.target.closest('[data-edit-photo]');
+  if (editBtn){ e.stopPropagation(); openPhotoModal(editBtn.dataset.editPhoto); return; }
+
+  const trackerDay = e.target.closest('[data-tracker-date]');
+  if (trackerDay){ toggleTracker(trackerDay.dataset.trackerDate); return; }
+
+  const cookBtn = e.target.closest('[data-cook-rid]');
+  if (cookBtn){
+    e.stopPropagation();
+    openCookMode(cookBtn.dataset.cookRid, parseFloat(cookBtn.dataset.cookP) || 1);
+    return;
+  }
+  if (e.target.closest('#cook-close')){ closeCookMode(); return; }
+  if (e.target.closest('#cook-prev')){
+    if (cookState && cookState.step > 0){
+      pauseCookTimer(); cookState.step--; cookState.timerSec = 0;
+      cookState.timerMins = cookState.stepMins[cookState.step];
+      renderCookMode();
+    }
+    return;
+  }
+  if (e.target.closest('#cook-next')){
+    if (cookState && cookState.step < cookState.recipe.steps.length - 1){
+      pauseCookTimer(); cookState.step++; cookState.timerSec = 0;
+      cookState.timerMins = cookState.stepMins[cookState.step];
+      renderCookMode();
+    } else if (cookState){ closeCookMode(); }
+    return;
+  }
+  if (e.target.closest('#cook-timer-btn')){
+    if (cookState.timerRunning) pauseCookTimer(); else startCookTimer();
+    return;
+  }
+
+  const tip = e.target.closest('[data-apply-tip]');
+  if (tip){ applySavingsTip(+tip.dataset.applyTip, +tip.dataset.tipMi, tip.dataset.tipRid); return; }
+  if (e.target.closest('#pwa-install')){
+    if (deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { deferredPrompt = null; }); }
+    return;
+  }
+  const likeBtn = e.target.closest('[data-like]');
+  if (likeBtn){ e.stopPropagation(); togglePreference(likeBtn.dataset.like, 'like'); return; }
+  const dislikeBtn = e.target.closest('[data-dislike]');
+  if (dislikeBtn){ e.stopPropagation(); togglePreference(dislikeBtn.dataset.dislike, 'dislike'); return; }
+  const catFilter = e.target.closest('#catalog-filter button');
+  if (catFilter){
+    state.catalogFilter = catFilter.dataset.filter;
+    document.querySelectorAll('#catalog-filter button').forEach(b => b.classList.toggle('active', b === catFilter));
+    renderCatalog(); hydratePhotos();
+    return;
+  }
+  const catSort = e.target.closest('#catalog-sort button');
+  if (catSort){
+    state.catalogSort = catSort.dataset.sort;
+    document.querySelectorAll('#catalog-sort button').forEach(b => b.classList.toggle('active', b === catSort));
+    renderCatalog(); hydratePhotos();
+    return;
+  }
+  const pBtn = e.target.closest('.portion-btn');
+  if (pBtn){
+    e.stopPropagation();
+    const [d, m] = pBtn.dataset.pm.split('-').map(Number);
+    setPortions(d, m, parseFloat(pBtn.dataset.portion));
+    return;
+  }
+  const tab = e.target.closest('.tab');
+  if (tab){
+    state.activeTab = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === state.activeTab));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + state.activeTab));
+    return;
+  }
+  if (e.target.closest('#theme-toggle')){ toggleTheme(); return; }
+  const toggle = e.target.closest('[data-toggle]');
+  if (toggle && !e.target.closest('.action-btn') && !e.target.closest('.portion-btn')
+      && !e.target.closest('.cook-btn')){
+    const key = toggle.dataset.toggle;
+    const mealEl = document.querySelector('.meal[data-meal="' + key + '"]');
+    if (mealEl){
+      mealEl.classList.toggle('open');
+      if (mealEl.classList.contains('open')) state.openMeals.add(key);
+      else state.openMeals.delete(key);
+    }
+    return;
+  }
+  const swap = e.target.closest('.swap-btn, .action-btn.swap');
+  if (swap){ e.stopPropagation(); openSwapSheet(+swap.dataset.swapD, +swap.dataset.swapM); return; }
+  const alt = e.target.closest('.alt');
+  if (alt){ doSwap(alt.dataset.altId); return; }
+  if (e.target.closest('#sheet-cancel') || e.target.id === 'sheet-backdrop'){ closeSwapSheet(); return; }
+  const item = e.target.closest('#shop-list .item');
+  if (item){
+    const k = item.dataset.key;
+    if (state.checked.has(k)) state.checked.delete(k); else state.checked.add(k);
+    item.classList.toggle('done');
+    saveState();
+    return;
+  }
+  const chip = e.target.closest('[data-ex]');
+  if (chip){
+    const k = chip.dataset.ex;
+    if (state.excluded.has(k)) state.excluded.delete(k); else state.excluded.add(k);
+    chip.classList.toggle('on');
+    saveState();
+    return;
+  }
+  if (e.target.closest('#copy-list')){ copyShopList(); return; }
+  if (e.target.closest('#print-list')){ window.print(); return; }
+  if (e.target.closest('#reset-checked')){
+    state.checked = new Set(); saveState();
+    document.querySelectorAll('#shop-list .item').forEach(el => el.classList.remove('done'));
+    return;
+  }
+  if (e.target.closest('#export-menu')){ exportMenuWithRecipes(); return; }
+  if (e.target.closest('#open-recipes')){ openRecipesModal(); return; }
+  if (e.target.closest('#modal-close') || e.target.closest('#modal-cancel') ||
+      e.target.id === 'modal-backdrop'){ closeModal(); return; }
+  const rmIng = e.target.closest('[data-rm-ing]');
+  if (rmIng){ nrIngredients.splice(+rmIng.dataset.rmIng, 1); renderNrIngredients(); return; }
+  if (e.target.closest('#nr-ing-add')){
+    const k = document.getElementById('nr-ing-key').value;
+    const q = parseFloat(document.getElementById('nr-ing-qty').value);
+    if (!k || !q || q <= 0){ alert('Выберите продукт и количество'); return; }
+    nrIngredients.push({k, q});
+    document.getElementById('nr-ing-qty').value = '';
+    renderNrIngredients();
+    return;
+  }
+  if (e.target.closest('#nr-save')){ saveCustomRecipe(); return; }
+  const delC = e.target.closest('[data-del-custom]');
+  if (delC){
+    const id = delC.dataset.delCustom;
+    if (!confirm('Удалить рецепт?')) return;
+    state.customRecipes = state.customRecipes.filter(r => r.id !== id);
+    state.liked.delete(id); state.disliked.delete(id);
+    saveState(); renderMyRecipes(); renderCatalog();
+    let used = false;
+    state.plan.forEach(day => day.meals.forEach(m => {
+      if (m.recipe.id === id || (m.extra && m.extra.id === id)) used = true;
+    }));
+    if (used) generate();
+    return;
+  }
+});
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'search'){ state.search = e.target.value; applySearch(); }
+  if (['budget','days','people'].includes(e.target.id)){ readFormToState(); }
+  if (e.target.id === 'custom-kcal'){ readFormToState(); }
+});
+document.addEventListener('change', e => {
+  if (['veg','multiDish','seasonal','showPhotos'].includes(e.target.id)){ readFormToState(); }
+});
+
+function setupPWA(){
+  const manifest = {
+    name: 'Питание по бюджету', short_name: 'Питание',
+    start_url: '.', scope: '.', display: 'standalone', orientation: 'portrait',
+    background_color: '#f2f6f3', theme_color: '#0f9d58', lang: 'ru',
+    icons: [{src: 'data:image/svg+xml;base64,' + btoa(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">' +
+      '<rect width="512" height="512" fill="#0f9d58" rx="100"/>' +
+      '<text x="256" y="340" font-size="280" text-anchor="middle" font-family="sans-serif">🥗</text>' +
+      '</svg>'), sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'}]
+  };
+  try{
+    const blob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
+    document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+  }catch(e){}
+  const swCode = 'const CACHE="mealplanner-v11";' +
+    'self.addEventListener("install",e=>{self.skipWaiting()});' +
+    'self.addEventListener("activate",e=>{e.waitUntil(self.clients.claim())});' +
+    'self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;' +
+    'e.respondWith(caches.open(CACHE).then(c=>c.match(e.request).then(h=>h||' +
+    'fetch(e.request).then(r=>{if(r&&r.status===200&&r.type==="basic")c.put(e.request,r.clone());return r;' +
+    '}).catch(()=>h))))});';
+  if ('serviceWorker' in navigator){
+    try{
+      const swBlob = new Blob([swCode], {type: 'application/javascript'});
+      navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+    }catch(e){}
+  }
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); deferredPrompt = e; render();
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null; state.pwaDismissed = true; saveState(); render();
+  });
+}
+
+function init(){
+  loadState();
+  loadPhotoCache();
+  renderStoreList();
+  renderExcludeChips();
+  renderPresets();
+  applyTheme();
+  syncFormFromState();
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (state.theme === 'auto') applyTheme();
+  });
+  if (state.plan.length){
+    const recipesById = new Map(allRecipes().map(r => [r.id, r]));
+    let valid = true;
+    state.plan = state.plan.map(day => ({
+      meals: day.meals.map(m => {
+        const r = recipesById.get(m.recipeId);
+        const e = m.extraId ? recipesById.get(m.extraId) : null;
+        if (!r){ valid = false; return null; }
+        return {slot: m.slot, recipe: r, portions: m.portions || 1,
+          extra: e, extraPortions: m.extraPortions || 1};
+      })
+    }));
+    if (!valid || state.plan.some(d => d.meals.some(m => !m))) state.plan = [];
+  }
+  goToStep(1);
+  setupPWA();
+}
+
+init();
+</script>
+</body>
+</html>
