@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Мировое господство — против друга</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+  :root{
+    --panel: rgba(13,20,36,.94);
+    --border: rgba(148,163,184,.18);
+    --accent: #22d3a5;
+    --accent2: #38bdf8;
+    --danger: #ff4d6d;
+    --gold: #ffd166;
+    --purple: #a78bfa;
+    --text: #e6edf7;
+    --muted: #93a3b8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--text);background:#0b1220}
+  #map{position:absolute;inset:0;background:#0b1220;z-index:1}
+  .maplibregl-ctrl-attrib{background:rgba(13,20,36,.75)!important;color:#7c8ba1!important;font-size:10px!important}
+  .maplibregl-ctrl-attrib a{color:#93a3b8!important}
+  .maplibregl-ctrl-group{background:#0e1729!important;border-color:rgba(148,163,184,.2)!important}
+  .maplibregl-ctrl-group button{background:#0e1729!important}
+  .maplibregl-ctrl-group button span{filter:invert(1)}
+
+  #effects{position:fixed;inset:0;pointer-events:none;z-index:650}
+  .battle-damage{
+    position:absolute;font-size:20px;font-weight:900;
+    text-shadow:0 2px 6px rgba(0,0,0,.9),0 0 12px currentColor;
+    transform:translate(-50%,-50%);animation:floatUp 1.4s ease-out forwards;
+  }
+  @keyframes floatUp{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+    15%{opacity:1;transform:translate(-50%,-70%) scale(1.3)}
+    100%{opacity:0;transform:translate(-50%,-160%) scale(1)}
+  }
+  .battle-flash{
+    position:absolute;border-radius:50%;transform:translate(-50%,-50%);
+    border:3px solid;animation:flashOut 1s ease-out forwards;
+  }
+  @keyframes flashOut{
+    0%{width:10px;height:10px;opacity:1;margin-left:-5px;margin-top:-5px}
+    100%{width:110px;height:110px;opacity:0;margin-left:-55px;margin-top:-55px}
+  }
+
+  #topbar{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    z-index:600;background:var(--panel);border:1px solid var(--border);
+    border-radius:16px;padding:8px 12px;backdrop-filter:blur(12px);
+    box-shadow:0 10px 32px rgba(0,0,0,.4);
+    display:flex;align-items:center;gap:12px;
+    max-width:calc(100vw - 16px);flex-wrap:wrap;justify-content:center;
+  }
+  #topbar .brand{font-size:13px;font-weight:800;color:#fff;white-space:nowrap}
+  .res{display:flex;gap:8px;align-items:center}
+  .res-item{
+    font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:4px;
+    padding:4px 10px;border-radius:999px;white-space:nowrap;
+  }
+  .res-item.money{background:rgba(34,211,165,.12);border:1px solid rgba(34,211,165,.3);color:var(--accent)}
+  .res-item.oil{background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);color:var(--purple)}
+  .res-item.rp{background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.3);color:var(--gold)}
+  .stats{display:flex;gap:9px;flex-wrap:wrap}
+  .stat{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:4px}
+  .stat b{color:var(--text)}
+  .stat .dot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 8px currentColor}
+  .stat.player .dot{background:#22d3a5;color:#22d3a5}
+  .stat.ai1 .dot{background:#ff4d6d;color:#ff4d6d}
+  .stat.ai2 .dot{background:#38bdf8;color:#38bdf8}
+  .stat.ai3 .dot{background:#ffd166;color:#ffd166}
+  #topbar .turn{
+    font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--accent);background:rgba(34,211,165,.12);
+    border:1px solid rgba(34,211,165,.3);border-radius:999px;
+    padding:4px 11px;white-space:nowrap;
+  }
+  #topbar .turn.enemy{color:var(--danger);background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.3)}
+  #topbar .mode{
+    font-size:10.5px;font-weight:700;color:var(--purple);
+    background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);
+    border-radius:999px;padding:3px 9px;white-space:nowrap;
+  }
+
+  #minimap{
+    position:absolute;bottom:14px;left:14px;z-index:600;
+    background:rgba(13,20,36,.85);border:1px solid var(--border);
+    border-radius:12px;padding:5px;pointer-events:none;
+    backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,.5);
+  }
+  #minimapCanvas{display:block;border-radius:8px;background:rgba(8,13,24,.8)}
+
+  #message{
+    position:absolute;top:76px;left:50%;transform:translateX(-50%) translateY(-12px);
+    z-index:700;padding:9px 18px;border-radius:12px;
+    background:var(--panel);border:1px solid var(--border);
+    font-size:13px;font-weight:600;color:var(--text);
+    backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,.5);
+    opacity:0;pointer-events:none;transition:all .28s ease;
+    max-width:calc(100vw - 120px);text-align:center;
+  }
+  #message.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #message.success{border-color:rgba(34,211,165,.5);color:var(--accent)}
+  #message.warn{border-color:rgba(255,209,102,.5);color:var(--gold)}
+  #message.error{border-color:rgba(255,77,109,.5);color:var(--danger)}
+  #message.info{border-color:rgba(56,189,248,.5);color:var(--accent2)}
+
+  #bottomPanel{
+    position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+    z-index:600;width:min(720px,calc(100vw - 20px));
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:16px;padding:10px 12px;backdrop-filter:blur(12px);
+    box-shadow:0 18px 50px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .bp-row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  #selectionInfo{font-size:13px;color:var(--muted);line-height:1.4;flex:1;min-width:160px}
+  #selectionInfo b{color:var(--text);font-weight:700}
+  #selectionInfo .unit-tag{
+    display:inline-flex;align-items:center;gap:3px;
+    padding:2px 7px;margin:1px 2px;border-radius:6px;
+    font-size:11.5px;font-weight:700;color:var(--text);
+    background:rgba(148,163,184,.12);
+    border:1px solid rgba(148,163,184,.2);
+  }
+  .actions{display:flex;gap:6px;flex-wrap:wrap}
+  button{
+    font-family:inherit;cursor:pointer;border:none;
+    border-radius:10px;padding:10px 14px;font-size:12.5px;font-weight:700;
+    transition:transform .12s ease,filter .2s ease,opacity .2s;
+    white-space:nowrap;
+  }
+  button:active:not(:disabled){transform:scale(.97)}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04121a;box-shadow:0 6px 18px rgba(34,211,165,.3)}
+  .btn-primary:hover:not(:disabled){filter:brightness(1.08)}
+  .btn-secondary{background:rgba(148,163,184,.12);color:var(--text);border:1px solid rgba(148,163,184,.25)}
+  .btn-secondary:hover:not(:disabled){background:rgba(148,163,184,.2)}
+  .btn-gold{background:rgba(255,209,102,.14);color:var(--gold);border:1px solid rgba(255,209,102,.35)}
+  .btn-gold:hover:not(:disabled){background:rgba(255,209,102,.22)}
+  .btn-truce{background:rgba(56,189,248,.14);color:var(--accent2);border:1px solid rgba(56,189,248,.35)}
+  .btn-truce:hover:not(:disabled){background:rgba(56,189,248,.22)}
+  .btn-purple{background:rgba(167,139,250,.14);color:var(--purple);border:1px solid rgba(167,139,250,.4)}
+  .btn-purple:hover:not(:disabled){background:rgba(167,139,250,.25)}
+  .btn-danger{background:rgba(255,77,109,.14);color:var(--danger);border:1px solid rgba(255,77,109,.4)}
+  .btn-small{padding:7px 10px;font-size:11.5px}
+
+  .unit-circle{
+    width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:900;color:#fff;
+    border:2.5px solid rgba(255,255,255,.95);
+    box-shadow:0 3px 10px rgba(0,0,0,.65),inset 0 0 8px rgba(0,0,0,.25);
+    pointer-events:none;font-family:'Segoe UI',system-ui,sans-serif;
+    text-shadow:0 1px 3px rgba(0,0,0,.85);transition:transform .2s;
+  }
+  .unit-circle.selected-pulse{animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+  .overlay{
+    position:fixed;inset:0;z-index:2000;display:flex;
+    align-items:center;justify-content:center;padding:16px;
+    background:radial-gradient(circle at 50% -10%,rgba(34,211,165,.16),transparent 55%),
+               radial-gradient(circle at 85% 110%,rgba(56,189,248,.14),transparent 55%),
+               rgba(6,10,20,.94);
+    backdrop-filter:blur(8px);overflow-y:auto;
+  }
+  .overlay.hidden{display:none}
+  .panel{
+    background:linear-gradient(180deg,rgba(20,30,50,.96),rgba(11,17,31,.97));
+    border:1px solid var(--border);border-radius:22px;
+    padding:24px 22px;width:100%;max-width:520px;
+    box-shadow:0 40px 90px rgba(0,0,0,.7);
+    animation:popIn .4s cubic-bezier(.2,1.3,.5,1);
+    text-align:center;
+  }
+  @keyframes popIn{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  .panel h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:10px}
+  .lead{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+  .lead b{color:var(--accent)}
+  .rules{
+    background:rgba(148,163,184,.06);border:1px solid rgba(148,163,184,.12);
+    border-radius:14px;padding:12px 14px;margin-bottom:16px;text-align:left;
+  }
+  .rule{font-size:12.5px;color:var(--muted);padding:3px 0;line-height:1.5}
+  .rule b{color:var(--accent2);margin-right:6px}
+
+  .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+  .mode-card{
+    padding:16px 12px;border-radius:14px;
+    background:rgba(148,163,184,.06);border:2px solid rgba(148,163,184,.14);
+    cursor:pointer;transition:all .2s;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+  }
+  .mode-card:hover{background:rgba(148,163,184,.12);border-color:rgba(148,163,184,.3)}
+  .mode-card.active{
+    background:linear-gradient(135deg,rgba(34,211,165,.15),rgba(56,189,248,.1));
+    border-color:var(--accent);box-shadow:0 0 24px rgba(34,211,165,.25);
+  }
+  .mode-card .mc-icon{font-size:32px}
+  .mode-card .mc-title{font-size:14px;font-weight:700;color:var(--text)}
+  .mode-card .mc-desc{font-size:11px;color:var(--muted);line-height:1.35;text-align:center}
+
+  .panel .btn-primary{width:100%;padding:13px;font-size:14.5px;margin-top:8px}
+
+  .tech-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+  .tech-row{
+    display:flex;align-items:center;gap:12px;padding:12px 14px;
+    background:rgba(148,163,184,.06);border:1px solid rgba(148,163,184,.14);
+    border-radius:14px;text-align:left;
+  }
+  .tech-row .icon{font-size:24px;flex-shrink:0}
+  .tech-info{flex:1;min-width:0}
+  .tech-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+  .tech-desc{font-size:11.5px;color:var(--muted);line-height:1.35}
+  .tech-lvl{
+    font-size:11px;font-weight:800;color:var(--accent);
+    background:rgba(34,211,165,.12);border:1px solid rgba(34,211,165,.3);
+    border-radius:999px;padding:3px 9px;flex-shrink:0;white-space:nowrap;
+  }
+  .tech-btn{
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04121a;
+    padding:9px 12px;font-size:12px;flex-shrink:0;min-width:100px;
+  }
+  .tech-btn:disabled{background:rgba(148,163,184,.15);color:var(--muted);box-shadow:none}
+  .cards-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+  .card{
+    padding:12px 10px;border-radius:14px;text-align:center;
+    background:rgba(148,163,184,.06);border:1px solid rgba(148,163,184,.14);
+    cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:5px;
+  }
+  .card:hover:not(:disabled){background:rgba(167,139,250,.15);border-color:rgba(167,139,250,.4);transform:translateY(-2px)}
+  .card:disabled{opacity:.4;cursor:not-allowed}
+  .card .card-icon{font-size:26px}
+  .card .card-name{font-size:12.5px;font-weight:700;color:var(--text)}
+  .card .card-cost{font-size:10.5px;color:var(--muted);line-height:1.3}
+
+  #toastArea{
+    position:fixed;top:76px;left:50%;transform:translateX(-50%);
+    z-index:900;display:flex;flex-direction:column;gap:8px;
+    pointer-events:none;max-width:calc(100vw - 100px);
+  }
+  .toast{
+    padding:12px 20px;border-radius:14px;
+    background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(56,189,248,.15));
+    border:1px solid rgba(167,139,250,.5);
+    color:var(--text);font-size:13.5px;font-weight:600;
+    backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.5);
+    animation:toastIn .4s cubic-bezier(.2,1.3,.5,1);text-align:center;
+  }
+  .toast b{color:var(--purple)}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-20px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+  /* QR / Scanner */
+  #qrCanvasWrap{
+    background:#fff;padding:12px;border-radius:16px;
+    display:inline-block;margin:8px auto;
+  }
+  #qrCanvas{display:block}
+  .qr-chunks{
+    display:flex;flex-direction:column;gap:14px;
+    max-height:60vh;overflow-y:auto;padding:8px 4px;margin:10px 0;
+  }
+  .qr-chunk{
+    background:#fff;padding:10px;border-radius:14px;
+    display:flex;flex-direction:column;align-items:center;
+    gap:6px;
+  }
+  .qr-chunk-label{
+    font-size:12px;font-weight:800;color:#0b1220;letter-spacing:.05em;
+  }
+  .qr-chunk canvas{display:block}
+  .qr-url{
+    font-family:monospace;font-size:10.5px;color:var(--muted);
+    background:rgba(0,0,0,.3);border-radius:8px;padding:8px;
+    word-break:break-all;max-height:60px;overflow-y:auto;
+    margin:10px 0;text-align:left;
+  }
+  .qr-actions{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+  .qr-actions button{width:auto;padding:9px 16px;font-size:12px}
+  .qr-hint{
+    font-size:12.5px;color:var(--accent2);font-weight:600;
+    padding:10px 14px;background:rgba(56,189,248,.1);
+    border:1px solid rgba(56,189,248,.3);border-radius:12px;
+    margin-bottom:12px;
+  }
+  .qr-who{font-size:18px;font-weight:800;margin-bottom:6px}
+
+  #scannerContainer{
+    position:relative;background:#000;border-radius:16px;
+    overflow:hidden;margin:12px 0;
+  }
+  #scannerContainer video{display:block;width:100%;height:auto}
+  #scannerFrame{
+    position:absolute;inset:15%;border:3px solid var(--accent);
+    border-radius:16px;pointer-events:none;
+    box-shadow:0 0 0 9999px rgba(0,0,0,.5);
+  }
+  .chunk-progress{
+    font-size:13px;color:var(--accent);font-weight:700;
+    margin:10px 0;
+  }
+
+  #waitingScreen .spinner{
+    width:44px;height:44px;border-radius:50%;
+    border:4px solid rgba(34,211,165,.2);
+    border-top-color:var(--accent);
+    margin:16px auto;animation:spin 1s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Loading screen */
+  #loadingScreen .spinner{
+    width:56px;height:56px;border-radius:50%;
+    border:5px solid rgba(34,211,165,.15);
+    border-top-color:var(--accent);
+    margin:20px auto;animation:spin 1s linear infinite;
+  }
+  #loadingStatus{
+    font-size:13px;color:var(--muted);margin-top:12px;
+    min-height:20px;
+  }
+  #loadingProgress{
+    width:100%;height:4px;background:rgba(148,163,184,.15);
+    border-radius:2px;margin-top:14px;overflow:hidden;
+  }
+  #loadingBar{
+    height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));
+    width:0%;transition:width .4s ease;
+  }
+
+  @media (max-width:700px){
+    #topbar{padding:6px 9px;gap:8px}
+    #topbar .brand{font-size:11px}
+    .stat{font-size:10.5px}
+    .res-item{font-size:11px;padding:3px 8px}
+    #topbar .turn{font-size:10px;padding:3px 8px}
+    #minimap{bottom:auto;top:96px;left:10px;padding:4px}
+    #minimapCanvas{width:130px;height:72px}
+    #bottomPanel{padding:8px 10px;gap:6px}
+    #selectionInfo{font-size:11.5px;min-width:120px}
+    button{padding:8px 10px;font-size:11.5px}
+    .panel{padding:20px 16px}
+    .panel h1{font-size:19px}
+    .mode-grid{grid-template-columns:1fr}
+    .unit-circle{width:26px;height:26px;font-size:11.5px}
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="effects"></div>
+<div id="toastArea"></div>
+
+<div id="topbar">
+  <div class="brand">🌍 Мировое господство</div>
+  <div class="res">
+    <div class="res-item money">💰 <b id="moneyLabel">0</b></div>
+    <div class="res-item oil">🛢 <b id="oilLabel">0</b></div>
+    <div class="res-item rp">⚗️ <b id="rpLabel">0</b></div>
+  </div>
+  <div class="stats">
+    <div class="stat player"><span class="dot"></span>Вы: <b id="playerCount">0</b></div>
+    <div class="stat ai1"><span class="dot"></span>Друг: <b id="ai1Count">0</b></div>
+    <div class="stat ai2"><span class="dot"></span>Си: <b id="ai2Count">0</b></div>
+    <div class="stat ai3"><span class="dot"></span>Жё: <b id="ai3Count">0</b></div>
+  </div>
+  <div class="turn" id="turnLabel">Загрузка…</div>
+  <div class="mode" id="modeLabel">ИИ</div>
+</div>
+
+<div id="minimap"><canvas id="minimapCanvas" width="200" height="100"></canvas></div>
+<div id="message"></div>
+
+<div id="bottomPanel">
+  <div class="bp-row">
+    <div id="selectionInfo">Загрузка игры…</div>
+    <div class="actions">
+      <button id="endTurnBtn" class="btn-primary" disabled>Конец хода</button>
+    </div>
+  </div>
+  <div class="bp-row" id="actionsBar" style="display:none">
+    <div class="actions" id="unitButtons"></div>
+    <div class="actions">
+      <button id="cardsBtn" class="btn-purple btn-small" disabled>🎴 Карты</button>
+      <button id="techBtn" class="btn-gold btn-small" disabled>⚗️ Технологии</button>
+      <button id="truceBtn" class="btn-truce btn-small" disabled>🕊 Перемирие</button>
+    </div>
+  </div>
+</div>
+
+<!-- Экран загрузки -->
+<div id="loadingScreen" class="overlay">
+  <div class="panel">
+    <h1 id="loadingTitle">🌍 Загрузка карты…</h1>
+    <div class="spinner"></div>
+    <div id="loadingStatus">Соединяемся с сервером…</div>
+    <div id="loadingProgress"><div id="loadingBar"></div></div>
+    <button id="retryBtn" class="btn-primary hidden" style="margin-top:18px">🔄 Попробовать снова</button>
+  </div>
+</div>
+
+<!-- Стартовый экран -->
+<div id="startScreen" class="overlay hidden">
+  <div class="panel">
+    <h1>🌍 Мировое господство</h1>
+    <p class="lead">Захватите <b>35%</b> мира. Выберите режим игры.</p>
+    <div class="mode-grid">
+      <div class="mode-card active" data-mode="ai">
+        <div class="mc-icon">🤖</div>
+        <div class="mc-title">Против ИИ</div>
+        <div class="mc-desc">3 компьютерных противника</div>
+      </div>
+      <div class="mode-card" data-mode="qr">
+        <div class="mc-icon">📱</div>
+        <div class="mc-title">С другом (QR)</div>
+        <div class="mc-desc">Передача хода по QR</div>
+      </div>
+    </div>
+    <div class="rules">
+      <div class="rule"><b>1.</b> Выбирайте свою страну и покупайте юниты</div>
+      <div class="rule"><b>2.</b> 💰 деньги, 🛢 нефть, ⚗️ очки исследований</div>
+      <div class="rule"><b>3.</b> Пехота защищает, танки бьют, авиация летает</div>
+      <div class="rule"><b>4.</b> В QR-режиме передавайте ход через QR-код</div>
+    </div>
+    <button id="startBtn" class="btn-primary">Начать игру</button>
+    <button id="scanStartBtn" class="btn-secondary" style="margin-top:10px;padding:11px;font-size:13px">📷 У меня есть QR от друга</button>
+  </div>
+</div>
+
+<div id="endScreen" class="overlay hidden">
+  <div class="panel">
+    <h1 id="endTitle">Игра окончена</h1>
+    <p class="lead" id="endSubtitle">—</p>
+    <button id="restartBtn" class="btn-primary">Играть снова</button>
+  </div>
+</div>
+
+<div id="techScreen" class="overlay hidden">
+  <div class="panel">
+    <h1>⚗️ Технологии</h1>
+    <p class="lead">Доступно очков исследований: <b id="techRpLabel">0</b></p>
+    <div class="tech-list" id="techList"></div>
+    <button id="techCloseBtn" class="btn-primary">Закрыть</button>
+  </div>
+</div>
+
+<div id="cardsScreen" class="overlay hidden">
+  <div class="panel">
+    <h1>🎴 Карты действий</h1>
+    <p class="lead" id="cardsLead">Выберите карту, затем кликните по цели</p>
+    <div class="cards-row" id="cardsList"></div>
+    <button id="cardsCloseBtn" class="btn-primary">Отмена</button>
+  </div>
+</div>
+
+<!-- Экран QR-передачи хода -->
+<div id="qrScreen" class="overlay hidden">
+  <div class="panel">
+    <div class="qr-who" id="qrWho">Ход игрока</div>
+    <div class="qr-hint" id="qrHint">📱 Покажите QR другу — он откроет игру на своём телефоне</div>
+    <div id="qrContainer"></div>
+    <div class="qr-url" id="qrUrl"></div>
+    <div class="qr-actions">
+      <button class="btn-secondary" id="copyUrlBtn">📋 Ссылка</button>
+      <button class="btn-primary" id="qrContinueBtn" style="width:auto;padding:9px 16px;font-size:12px">Продолжить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Экран сборки чанков (для получателя) -->
+<div id="chunksScreen" class="overlay hidden">
+  <div class="panel">
+    <h1 id="chunksTitle">📷 Сканирование</h1>
+    <p class="lead" id="chunksLead">Получено <b><span id="chunksGot">0</span>/<span id="chunksTotal">1</span></b> частей</p>
+    <div id="scannerContainer" class="hidden">
+      <video id="scannerVideo" playsinline muted></video>
+      <div id="scannerFrame"></div>
+    </div>
+    <div class="chunk-progress" id="chunkProgress"></div>
+    <button id="scanNextBtn" class="btn-primary">📷 Сканировать QR</button>
+    <button id="chunksCancelBtn" class="btn-secondary" style="margin-top:10px">Отмена</button>
+  </div>
+</div>
+
+<!-- Экран ожидания хода ИИ -->
+<div id="waitingScreen" class="overlay hidden">
+  <div class="panel">
+    <h1>⏳ Ход противников…</h1>
+    <p class="lead">ИИ и соперники обдумывают свои действия</p>
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+/* =====================================================================
+   КОНФИГ
+   ===================================================================== */
+const PLAYERS = {
+  player: { name: 'Вы',        color: '#22d3a5' },
+  ai1:    { name: 'Противник', color: '#ff4d6d' },
+  ai2:    { name: 'Синие',     color: '#38bdf8' },
+  ai3:    { name: 'Жёлтые',    color: '#ffd166' }
+};
+const NEUTRAL_COLOR = '#3d4a5c';
+const WIN_PERCENT   = 0.35;
+const NEIGHBOR_DEG  = 2.5;
+const TRUCE_COST    = 5;
+const TRUCE_DURATION= 3;
+
+// НЕСКОЛЬКО ИСТОЧНИКОВ GeoJSON (с fallback)
+const GEOJSON_SOURCES = [
+  'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_110m_admin_0_countries.geojson',
+  'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_110m_admin_0_countries.geojson',
+  'https://cdn.statically.io/gh/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_110m_admin_0_countries.geojson',
+  'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_countries.geojson'
+];
+const GEO_CACHE_KEY = 'geo_cache_v3';
+
+const OIL_COUNTRIES = new Set(['SAU','IRQ','IRN','RUS','USA','CAN','VEN','NGA','DZA','LBY','KAZ','AZE','ARE','QAT','KWT','NOR','GBR','BRA','MEX','CHN']);
+
+const UNIT_TYPES = {
+  infantry: { name:'Пехота', icon:'🪖', atk:1.0, def:1.5, cost:3,  oil:0 },
+  tanks:    { name:'Танки',  icon:'🛡️', atk:3.0, def:1.2, cost:10, oil:2 },
+  air:      { name:'Авиация',icon:'✈️', atk:4.5, def:0.3, cost:16, oil:4 }
+};
+
+const ACTION_CARDS = {
+  nuclear:      { name:'Ядерный удар', icon:'☢️', desc:'Уничтожает 50% юнитов', cost:40, oil:8 },
+  paratroopers: { name:'Десант',       icon:'🪂', desc:'Атака без границы',      cost:20, oil:4 },
+  propaganda:   { name:'Пропаганда',   icon:'📻', desc:'Убирает 2 юнита',        cost:12, oil:0 }
+};
+
+const TECH = {
+  attack:  { name:'Атака',       icon:'⚔️', desc:'+15% к атаке',   maxLevel:5, costs:[4,6,8,12,16] },
+  defense: { name:'Оборона',     icon:'🛡️', desc:'+15% к обороне', maxLevel:5, costs:[4,6,8,12,16] },
+  income:  { name:'Экономика',   icon:'💰', desc:'+2💰 к доходу',  maxLevel:4, costs:[5,8,12,18] },
+  oil:     { name:'Нефтедобыча', icon:'🛢', desc:'+2🛢 к доходу',  maxLevel:4, costs:[5,8,12,18] }
+};
+
+const CHUNK_SIZE = 1200; // chars per QR chunk
+
+/* =====================================================================
+   СОСТОЯНИЕ
+   ===================================================================== */
+const state = {
+  countries: {},
+  currentTurn: 'player',
+  selected: null,
+  turnNumber: 1,
+  gameOver: false,
+  gameMode: 'ai',
+  localPlayer: 'player',
+  markers: new Map(),
+  ready: false,
+  resources: {
+    player: { money: 30, oil: 10, rp: 0 },
+    ai1:    { money: 30, oil: 10, rp: 0 }
+  },
+  techs: {
+    player: { attack: 0, defense: 0, income: 0, oil: 0 },
+    ai1:    { attack: 0, defense: 0, income: 0, oil: 0 }
+  },
+  truces: { ai1: 0, ai2: 0, ai3: 0 },
+  pendingAction: null
+};
+
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const rand = arr => arr[Math.floor(Math.random() * arr.length)];
+
+function shuffle(a){ for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function flashMessage(text, type='info'){
+  const el = $('message');
+  el.textContent = text;
+  el.className = 'message ' + type;
+  el.classList.add('show');
+  clearTimeout(flashMessage._t);
+  flashMessage._t = setTimeout(()=>el.classList.remove('show'), 3200);
+}
+function toast(text, dur=3500){
+  const el = document.createElement('div');
+  el.className = 'toast'; el.innerHTML = text;
+  $('toastArea').appendChild(el);
+  setTimeout(()=>{
+    el.style.transition = 'opacity .4s, transform .4s';
+    el.style.opacity = '0'; el.style.transform = 'translateY(-20px)';
+    setTimeout(()=>el.remove(), 400);
+  }, dur);
+}
+
+/* =====================================================================
+   ЗАГРУЗКА КАРТЫ — с прогрессом, кэшем и fallback
+   ===================================================================== */
+function setLoadingStatus(text, percent){
+  $('loadingStatus').textContent = text;
+  if (percent !== undefined) $('loadingBar').style.width = percent + '%';
+}
+function showLoadingError(msg){
+  $('loadingTitle').textContent = '⚠️ Ошибка загрузки';
+  $('loadingStatus').textContent = msg;
+  $('loadingBar').style.width = '0%';
+  document.querySelector('#loadingScreen .spinner').style.display = 'none';
+  $('retryBtn').classList.remove('hidden');
+}
+
+async function loadCountries(){
+  // 1) Пробуем кэш
+  try {
+    const cached = localStorage.getItem(GEO_CACHE_KEY);
+    if (cached){
+      setLoadingStatus('Загружаем из кэша…', 90);
+      const data = JSON.parse(cached);
+      if (data && data.features && data.features.length > 100){
+        setLoadingStatus('Готово!', 100);
+        return data;
+      }
+    }
+  } catch(e){ console.warn('Cache read failed', e); }
+
+  // 2) Пробуем разные URL по очереди
+  let lastErr;
+  for (let i = 0; i < GEOJSON_SOURCES.length; i++){
+    const url = GEOJSON_SOURCES[i];
+    try {
+      setLoadingStatus('Источник ' + (i+1) + '/' + GEOJSON_SOURCES.length + '…', 20 + i * 15);
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 15000);
+      const res = await fetch(url, { signal: ctrl.signal, mode: 'cors' });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      setLoadingStatus('Разбираем данные…', 75);
+      const data = await res.json();
+      if (!data || !data.features || data.features.length < 100){
+        throw new Error('Мало стран: ' + (data?.features?.length || 0));
+      }
+      setLoadingStatus('Кэшируем…', 95);
+      try { localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(data)); } catch(e){}
+      setLoadingStatus('Готово!', 100);
+      return data;
+    } catch(e){
+      lastErr = e;
+      console.warn('GeoJSON failed:', url, e.message);
+    }
+  }
+  throw lastErr || new Error('Все источники недоступны');
+}
+
+/* =====================================================================
+   УТИЛИТЫ ГЕОМЕТРИИ
+   ===================================================================== */
+function bboxCenter(g){
+  let a=180,b=-180,c=90,d=-90;
+  (function w(x){ typeof x[0]==='number' ? (a=Math.min(a,x[0]),b=Math.max(b,x[0]),c=Math.min(c,x[1]),d=Math.max(d,x[1])) : x.forEach(w); })(g.coordinates);
+  return [(a+b)/2,(c+d)/2];
+}
+function bboxOf(g){
+  let a=180,b=-180,c=90,d=-90;
+  (function w(x){ typeof x[0]==='number' ? (a=Math.min(a,x[0]),b=Math.max(b,x[0]),c=Math.min(c,x[1]),d=Math.max(d,x[1])) : x.forEach(w); })(g.coordinates);
+  return [a,c,b,d];
+}
+function samplePts(g, max=40){
+  const pts=[];
+  (function w(x){ typeof x[0]==='number' ? pts.push(x) : x.forEach(w); })(g.coordinates);
+  if (pts.length<=max) return pts;
+  const step=pts.length/max, out=[];
+  for(let i=0;i<max;i++) out.push(pts[Math.floor(i*step)]);
+  return out;
+}
+
+function buildState(geojson){
+  const used = new Set();
+  for (const f of geojson.features){
+    const p = f.properties;
+    const name = p.ADMIN || p.NAME || p.name;
+    if (!name || name==='Antarctica' || name==='Fr. S. Antarctic Lands') continue;
+    let key = (p.ISO_A3 && p.ISO_A3 !== '-99') ? p.ISO_A3 : name.replace(/\W+/g,'_');
+    let base = key, n = 1;
+    while (used.has(key)) key = base + '_' + (++n);
+    used.add(key);
+    let cx, cy;
+    if (typeof p.LABEL_X === 'number' && typeof p.LABEL_Y === 'number'){ cx = p.LABEL_X; cy = p.LABEL_Y; }
+    else [cx, cy] = bboxCenter(f.geometry);
+    state.countries[key] = {
+      name, iso: key,
+      continent: p.CONTINENT || 'Unknown',
+      cx, cy,
+      geometry: f.geometry,
+      bbox: bboxOf(f.geometry),
+      samples: samplePts(f.geometry, 40),
+      hasOil: OIL_COUNTRIES.has(key),
+      owner: 'neutral',
+      units: { infantry: 1, tanks: 0, air: 0 },
+      neighbors: []
+    };
+  }
+}
+
+/* =====================================================================
+   СОСЕДСТВО
+   ===================================================================== */
+function bboxesNear(a, b, th){
+  const ov = (x1,x2,y1,y2) => !(x2 < y1-th || x1 > y2+th);
+  const lngOk = ov(a[0],a[2],b[0],b[2]) || ov(a[0],a[2],b[0]-360,b[2]-360) || ov(a[0],a[2],b[0]+360,b[2]+360);
+  return lngOk && ov(a[1],a[3],b[1],b[3]);
+}
+function minDist(A, B){
+  let best = Infinity;
+  for (const pa of A) for (const pb of B){
+    const dy = pa[1]-pb[1];
+    const dx1 = pa[0]-pb[0], dx2 = pa[0]-(pb[0]+360), dx3 = pa[0]-(pb[0]-360);
+    const d = Math.min(dx1*dx1, dx2*dx2, dx3*dx3) + dy*dy;
+    if (d < best) best = d;
+    if (best < 0.001) return 0;
+  }
+  return Math.sqrt(best);
+}
+function computeNeighbors(){
+  const list = Object.values(state.countries);
+  for (let i=0;i<list.length;i++) for (let j=i+1;j<list.length;j++){
+    const A=list[i], B=list[j];
+    if (!bboxesNear(A.bbox,B.bbox,NEIGHBOR_DEG)) continue;
+    if (minDist(A.samples,B.samples) < NEIGHBOR_DEG){
+      A.neighbors.push(B.iso);
+      B.neighbors.push(A.iso);
+    }
+  }
+  for (const c of list){
+    if (c.neighbors.length) continue;
+    const close = list.filter(o=>o!==c).map(o=>{
+      let dx = c.cx - o.cx;
+      if (dx>180) dx-=360; if (dx<-180) dx+=360;
+      const dy = c.cy - o.cy;
+      const avgLat = (c.cy+o.cy)/2*Math.PI/180;
+      const ax = dx*Math.cos(avgLat);
+      return { iso:o.iso, d: Math.sqrt(ax*ax + dy*dy) };
+    }).sort((a,b)=>a.d-b.d);
+    for (let i=0;i<Math.min(3,close.length);i++){
+      c.neighbors.push(close[i].iso);
+      state.countries[close[i].iso].neighbors.push(c.iso);
+    }
+  }
+}
+
+/* =====================================================================
+   КАРТА
+   ===================================================================== */
+let map;
+const fcData = () => ({
+  type:'FeatureCollection',
+  features: Object.entries(state.countries).map(([iso,c])=>({
+    type:'Feature', id:iso,
+    properties:{ iso, owner:c.owner, name:c.name },
+    geometry:c.geometry
+  }))
+});
+
+function initMap(){
+  map = new maplibregl.Map({
+    container:'map',
+    style:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    center:[15,25], zoom:1.6,
+    minZoom:1, maxZoom:7,
+    antialias:true
+  });
+  map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'bottom-right');
+
+  map.on('load', () => {
+    map.addSource('countries', { type:'geojson', data: fcData() });
+    map.addLayer({
+      id:'countries-fill', type:'fill', source:'countries',
+      paint:{
+        'fill-color':['match',['get','owner'],
+          'player',PLAYERS.player.color,'ai1',PLAYERS.ai1.color,
+          'ai2',PLAYERS.ai2.color,'ai3',PLAYERS.ai3.color,NEUTRAL_COLOR],
+        'fill-opacity':['case',['==',['get','owner'],'neutral'],0.32,0.72]
+      }
+    });
+    map.addLayer({ id:'countries-border', type:'line', source:'countries',
+      paint:{ 'line-color':'rgba(255,255,255,0.22)', 'line-width':0.7 }});
+
+    map.addSource('selected', { type:'geojson', data:{ type:'FeatureCollection', features:[] }});
+    map.addLayer({ id:'selected-outline', type:'line', source:'selected',
+      paint:{ 'line-color':'#ffd166', 'line-width':3, 'line-opacity':0.95 }});
+
+    map.on('click','countries-fill', e => {
+      if (!e.features?.length) return;
+      onCountryClick(e.features[0].properties.iso);
+    });
+    map.on('mouseenter','countries-fill', ()=>{
+      if (isHuman(state.currentTurn) && !state.gameOver) map.getCanvas().style.cursor='pointer';
+    });
+    map.on('mouseleave','countries-fill', ()=>{ map.getCanvas().style.cursor=''; });
+
+    state.ready = true;
+    refreshMap();
+    updateUI();
+    $('loadingScreen').classList.add('hidden');
+    checkUrlOnLoad();
+  });
+}
+
+function refreshMap(){
+  if (!state.ready) return;
+  map.getSource('countries')?.setData(fcData());
+  const selFeat = [];
+  if (state.selected && state.countries[state.selected]){
+    selFeat.push({ type:'Feature', properties:{}, geometry: state.countries[state.selected].geometry });
+  }
+  map.getSource('selected')?.setData({ type:'FeatureCollection', features: selFeat });
+  updateMarkers();
+  drawMinimap();
+}
+
+/* =====================================================================
+   ЮНИТЫ
+   ===================================================================== */
+function totalUnits(c){ return c.units.infantry + c.units.tanks + c.units.air; }
+function powerAttack(c){
+  return c.units.infantry*UNIT_TYPES.infantry.atk
+       + c.units.tanks*UNIT_TYPES.tanks.atk
+       + c.units.air*UNIT_TYPES.air.atk;
+}
+function powerDefense(c){
+  return c.units.infantry*UNIT_TYPES.infantry.def
+       + c.units.tanks*UNIT_TYPES.tanks.def
+       + c.units.air*UNIT_TYPES.air.def;
+}
+
+function updateMarkers(){
+  const owned = new Set();
+  for (const [iso,c] of Object.entries(state.countries)){
+    if (c.owner==='neutral') continue;
+    owned.add(iso);
+    const p = PLAYERS[c.owner];
+    const label = String(totalUnits(c));
+    const isSel = iso === state.selected;
+    let m = state.markers.get(iso);
+
+    if (!m){
+      const el = document.createElement('div');
+      el.className = 'unit-circle';
+      el.style.background = p.color;
+      el.textContent = label;
+      if (isSel) el.classList.add('selected-pulse');
+      m = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([c.cx, c.cy]).addTo(map);
+      state.markers.set(iso, m);
+    } else {
+      const el = m.getElement();
+      if (el.style.background !== p.color) el.style.background = p.color;
+      if (el.textContent !== label) el.textContent = label;
+      if (isSel && !el.classList.contains('selected-pulse')) el.classList.add('selected-pulse');
+      if (!isSel && el.classList.contains('selected-pulse')) el.classList.remove('selected-pulse');
+    }
+  }
+  for (const [iso,m] of Array.from(state.markers)){
+    if (!owned.has(iso)){ m.remove(); state.markers.delete(iso); }
+  }
+}
+
+function drawMinimap(){
+  const canvas = $('minimapCanvas'); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const project = (lng,lat) => [(lng+180)/360*W, (90-lat)/180*H];
+  const fillGeom = g => { (function walk(c){
+    if (typeof c[0][0]==='number'){
+      c.forEach((p,i)=>{ const [x,y]=project(p[0],p[1]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+      ctx.closePath();
+    } else c.forEach(walk);
+  })(g.coordinates); };
+  for (const c of Object.values(state.countries)){
+    ctx.fillStyle = c.owner==='neutral'?NEUTRAL_COLOR:PLAYERS[c.owner].color;
+    ctx.globalAlpha = c.owner==='neutral'?0.45:0.9;
+    ctx.beginPath(); fillGeom(c.geometry); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  if (state.selected && state.countries[state.selected]){
+    ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); fillGeom(state.countries[state.selected].geometry); ctx.stroke();
+  }
+}
+
+function battleEffect(lngLat, won, text){
+  const p = map.project([lngLat[0], lngLat[1]]);
+  const d = document.createElement('div');
+  d.className = 'battle-damage'; d.textContent = text;
+  d.style.color = won ? '#22d3a5' : '#ff4d6d';
+  d.style.left = p.x + 'px'; d.style.top = p.y + 'px';
+  $('effects').appendChild(d);
+  setTimeout(()=> d.remove(), 1500);
+  const f = document.createElement('div');
+  f.className = 'battle-flash';
+  f.style.borderColor = won ? '#22d3a5' : '#ff4d6d';
+  f.style.boxShadow = '0 0 20px ' + (won ? '#22d3a5' : '#ff4d6d');
+  f.style.left = p.x + 'px'; f.style.top = p.y + 'px';
+  $('effects').appendChild(f);
+  setTimeout(()=> f.remove(), 1100);
+}
+
+/* =====================================================================
+   ИГРОВЫЕ ХЕЛПЕРЫ
+   ===================================================================== */
+function isHuman(pid){
+  if (pid === 'player') return true;
+  if (pid === 'ai1' && state.gameMode === 'qr') return true;
+  return false;
+}
+function getRes(pid = state.currentTurn){ return state.resources[pid] || { money: 0, oil: 0, rp: 0 }; }
+function getTech(pid = state.currentTurn){ return state.techs[pid] || { attack: 0, defense: 0, income: 0, oil: 0 }; }
+function playerDisplayName(pid){
+  if (pid === 'player') return state.gameMode === 'qr' ? 'Игрок 1' : 'Вы';
+  if (pid === 'ai1' && state.gameMode === 'qr') return 'Игрок 2';
+  return PLAYERS[pid].name;
+}
+
+/* =====================================================================
+   СТАРТ
+   ===================================================================== */
+function startGame(mode){
+  if (!state.ready) return;
+  state.gameMode = mode;
+  state.localPlayer = 'player';
+
+  for (const c of Object.values(state.countries)){
+    c.owner = 'neutral';
+    c.units = { infantry: 1, tanks: 0, air: 0 };
+  }
+
+  const byCont = {};
+  for (const c of Object.values(state.countries)){
+    (byCont[c.continent] = byCont[c.continent]||[]).push(c);
+  }
+  const conts = shuffle(Object.keys(byCont).filter(k => k && k!=='Seven seas (open ocean)'));
+  ['player','ai1','ai2','ai3'].forEach((pid,i)=>{
+    const cont = conts[i%conts.length] || conts[0];
+    const pool = byCont[cont] || Object.values(state.countries);
+    const s = rand(pool);
+    s.owner = pid;
+    s.units = { infantry: 6, tanks: 2, air: 1 };
+  });
+
+  state.currentTurn = 'player';
+  state.selected = null;
+  state.turnNumber = 1;
+  state.gameOver = false;
+  state.resources = {
+    player: { money: 30, oil: 10, rp: 0 },
+    ai1:    { money: 30, oil: 10, rp: 0 }
+  };
+  state.techs = {
+    player: { attack:0, defense:0, income:0, oil:0 },
+    ai1:    { attack:0, defense:0, income:0, oil:0 }
+  };
+  state.truces = { ai1:0, ai2:0, ai3:0 };
+  state.pendingAction = null;
+  state.markers.forEach(m=>m.remove()); state.markers.clear();
+
+  location.hash = '';
+  refreshMap();
+  $('startScreen').classList.add('hidden');
+  $('endScreen').classList.add('hidden');
+  startPlayerTurn();
+}
+
+function startPlayerTurn(){
+  const pid = state.currentTurn;
+  if (!isHuman(pid)) return;
+
+  const mine = Object.values(state.countries).filter(c => c.owner === pid);
+  const tech = getTech(pid);
+  const res = getRes(pid);
+
+  const moneyIncome = mine.length + tech.income * 2;
+  const oilIncome = mine.filter(c => c.hasOil).length + tech.oil * 2;
+  const rpIncome = 2 + Math.floor(mine.length / 5);
+
+  res.money += moneyIncome;
+  res.oil += oilIncome;
+  res.rp += rpIncome;
+
+  for (const ai of ['ai1','ai2','ai3']) if (state.truces[ai]>0) state.truces[ai]--;
+
+  updateUI();
+  flashMessage('🟢 ' + playerDisplayName(pid) + ' · +' + moneyIncome + '💰 +' + oilIncome + '🛢 +' + rpIncome + '⚗️', 'info');
+
+  if (Math.random() < 0.25 && state.turnNumber > 1){
+    setTimeout(()=> triggerRandomEvent(), 800);
+  }
+}
+
+/* =====================================================================
+   КЛИК ПО СТРАНЕ
+   ===================================================================== */
+function onCountryClick(iso){
+  if (state.gameOver) return;
+  if (!isHuman(state.currentTurn)) return;
+  if (!$('techScreen').classList.contains('hidden')) return;
+  if (!$('cardsScreen').classList.contains('hidden')){ handleCardTarget(iso); return; }
+  const c = state.countries[iso];
+  if (!c) return;
+  const myPid = state.currentTurn;
+
+  if (!state.selected){
+    if (c.owner === myPid){
+      state.selected = iso; updateUI(); refreshMap();
+      map.easeTo({ center:[c.cx,c.cy], zoom: Math.max(map.getZoom(),3), duration:700 });
+    }
+    return;
+  }
+  if (iso === state.selected){ state.selected = null; updateUI(); refreshMap(); return; }
+  if (c.owner === myPid){
+    state.selected = iso; updateUI(); refreshMap();
+    map.easeTo({ center:[c.cx,c.cy], zoom: Math.max(map.getZoom(),3), duration:700 });
+    return;
+  }
+  const src = state.countries[state.selected];
+  if (!src.neighbors.includes(iso)){
+    flashMessage('❌ ' + c.name + ' не граничит с ' + src.name, 'error');
+    return;
+  }
+  if (totalUnits(src) < 1){ flashMessage('❌ Нет юнитов', 'error'); return; }
+  resolveAttack(state.selected, iso, myPid);
+}
+
+/* =====================================================================
+   БОЙ
+   ===================================================================== */
+function resolveAttack(fromIso, toIso, attackerId){
+  const from = state.countries[fromIso];
+  const to = state.countries[toIso];
+  if (!from || !to) return false;
+  if (from.owner !== attackerId || to.owner === attackerId) return false;
+  if (totalUnits(from) < 1) return false;
+
+  const atkTech = getTech(attackerId);
+  const defTech = getTech(to.owner);
+  const techA = isHuman(attackerId) ? (1 + 0.15 * atkTech.attack) : 1 + 0.10 * (state.turnNumber/20);
+  const techD = isHuman(to.owner)    ? (1 + 0.15 * defTech.defense) : 1;
+
+  const A = powerAttack(from) * techA;
+  const D = Math.max(0.5, powerDefense(to)) * techD;
+  const p = A / (A + D);
+  const won = Math.random() < p;
+
+  if (won){
+    const oldOwner = to.owner;
+    loseUnits(from, 1);
+    to.owner = attackerId;
+    to.units = { infantry: 1, tanks: 0, air: 0 };
+    battleEffect([to.cx, to.cy], true, '−1');
+    if (isHuman(attackerId)){
+      const victim = oldOwner==='neutral' ? 'нейтралов' : playerDisplayName(oldOwner).toLowerCase();
+      flashMessage('⚔️ ' + from.name + ' → ' + to.name + ' (победа над ' + victim + ')', 'success');
+    } else if (isHuman(oldOwner)){
+      flashMessage('💥 ' + PLAYERS[attackerId].name + ' отбили ' + to.name + '!', 'error');
+    }
+  } else {
+    loseUnits(from, 2);
+    loseUnits(to, 1);
+    battleEffect([to.cx, to.cy], false, '−1');
+    if (isHuman(attackerId)) flashMessage('🛡️ ' + to.name + ' отбил атаку', 'warn');
+  }
+
+  if (isHuman(attackerId) && state.truces[to.owner] > 0){
+    state.truces[to.owner] = 0;
+    flashMessage('⚠️ Перемирие разорвано!', 'warn');
+  }
+
+  refreshMap(); updateUI(); checkVictory();
+  return won;
+}
+function loseUnits(country, n){
+  while (n > 0){
+    if (country.units.infantry > 0){ country.units.infantry--; n--; continue; }
+    if (country.units.tanks > 0){ country.units.tanks--; n--; continue; }
+    if (country.units.air > 0){ country.units.air--; n--; continue; }
+    break;
+  }
+}
+
+/* =====================================================================
+   ПОКУПКА / КАРТЫ / ТЕХ / ПЕРЕМИРИЕ
+   ===================================================================== */
+function buyUnit(type){
+  if (!isHuman(state.currentTurn) || state.gameOver) return;
+  if (!state.selected) return;
+  const c = state.countries[state.selected];
+  if (!c || c.owner !== state.currentTurn) return;
+  const t = UNIT_TYPES[type];
+  const res = getRes();
+  if (res.money < t.cost || res.oil < t.oil){ flashMessage('❌ Мало ресурсов', 'error'); return; }
+  if (totalUnits(c) >= 20){ flashMessage('⚠️ Лимит юнитов (20)', 'warn'); return; }
+  res.money -= t.cost; res.oil -= t.oil; c.units[type]++;
+  refreshMap(); updateUI();
+}
+
+function openCards(){
+  if (state.gameOver || !isHuman(state.currentTurn)) return;
+  renderCards(); $('cardsScreen').classList.remove('hidden');
+}
+function closeCards(){ state.pendingAction = null; $('cardsScreen').classList.add('hidden'); updateUI(); }
+function renderCards(){
+  const list = $('cardsList'); list.innerHTML = '';
+  const res = getRes();
+  for (const [id, card] of Object.entries(ACTION_CARDS)){
+    const can = res.money >= card.cost && res.oil >= card.oil;
+    const el = document.createElement('button');
+    el.className = 'card'; el.disabled = !can;
+    el.innerHTML =
+      '<div class="card-icon">' + card.icon + '</div>' +
+      '<div class="card-name">' + card.name + '</div>' +
+      '<div class="card-cost">' + card.desc + '<br>💰 ' + card.cost + ' · 🛢 ' + card.oil + '</div>';
+    el.addEventListener('click', () => selectCard(id));
+    list.appendChild(el);
+  }
+}
+function selectCard(id){
+  const card = ACTION_CARDS[id];
+  const res = getRes();
+  if (res.money < card.cost || res.oil < card.oil){ flashMessage('❌ Мало ресурсов', 'error'); return; }
+  state.pendingAction = id;
+  $('cardsLead').innerHTML = '🎯 Выбрано: <b>' + card.name + '</b>. Кликните цель.';
+  $('cardsScreen').classList.add('hidden');
+  flashMessage(card.icon + ' ' + card.name + ' — выберите цель', 'info');
+  updateUI();
+}
+function handleCardTarget(iso){
+  if (!state.pendingAction) return;
+  const card = ACTION_CARDS[state.pendingAction];
+  const target = state.countries[iso];
+  if (!target || target.owner === state.currentTurn){ flashMessage('❌ Не на свою страну', 'error'); return; }
+  const res = getRes();
+  if (res.money < card.cost || res.oil < card.oil){ flashMessage('❌ Мало ресурсов', 'error'); state.pendingAction = null; return; }
+  res.money -= card.cost; res.oil -= card.oil;
+
+  if (state.pendingAction === 'nuclear'){
+    const killed = Math.ceil(totalUnits(target) / 2);
+    loseUnits(target, killed);
+    battleEffect([target.cx, target.cy], true, '☢️');
+    toast('☢️ <b>Ядерный удар</b> по ' + target.name + '! Уничтожено ' + killed);
+  } else if (state.pendingAction === 'paratroopers'){
+    if (!state.selected){ flashMessage('❌ Выберите свою страну', 'error'); state.pendingAction = null; updateUI(); return; }
+    const src = state.countries[state.selected];
+    if (src.owner !== state.currentTurn){ flashMessage('❌ Источник не ваш', 'error'); state.pendingAction = null; return; }
+    toast('🪂 <b>Десант</b>: ' + src.name + ' → ' + target.name);
+    resolveAttack(state.selected, iso, state.currentTurn);
+  } else if (state.pendingAction === 'propaganda'){
+    loseUnits(target, 2);
+    battleEffect([target.cx, target.cy], false, '📻');
+    toast('📻 <b>Пропаганда</b> в ' + target.name + ' — потеряно 2 юнита');
+  }
+  state.pendingAction = null;
+  refreshMap(); updateUI();
+}
+
+function openTech(){ if (state.gameOver) return; renderTech(); $('techScreen').classList.remove('hidden'); }
+function renderTech(){
+  const res = getRes(), tech = getTech();
+  $('techRpLabel').textContent = res.rp;
+  const list = $('techList'); list.innerHTML = '';
+  for (const key of ['attack','defense','income','oil']){
+    const t = TECH[key], lvl = tech[key];
+    const maxed = lvl >= t.maxLevel;
+    const cost = maxed ? null : t.costs[lvl];
+    const can = !maxed && res.rp >= cost;
+    const row = document.createElement('div');
+    row.className = 'tech-row';
+    row.innerHTML =
+      '<div class="icon">' + t.icon + '</div>' +
+      '<div class="tech-info"><div class="tech-name">' + t.name + '</div>' +
+      '<div class="tech-desc">' + t.desc + '</div></div>' +
+      '<div class="tech-lvl">Ур. ' + lvl + '/' + t.maxLevel + '</div>' +
+      '<button class="tech-btn" ' + (can?'':'disabled') + '>' +
+      (maxed ? 'Максимум' : 'Улучшить · ' + cost + '⚗️') + '</button>';
+    const btn = row.querySelector('button');
+    if (can) btn.addEventListener('click', () => {
+      res.rp -= cost; tech[key]++;
+      toast(t.icon + ' <b>' + t.name + '</b> — ур. ' + tech[key]);
+      renderTech(); updateUI();
+    });
+    list.appendChild(row);
+  }
+}
+
+function doTruce(){
+  if (!isHuman(state.currentTurn) || state.gameOver) return;
+  if (!state.selected){ flashMessage('❌ Выберите страну', 'error'); return; }
+  const sel = state.countries[state.selected];
+  if (!sel || sel.owner !== state.currentTurn) return;
+  const res = getRes();
+  if (res.money < TRUCE_COST){ flashMessage('❌ Нужно ' + TRUCE_COST + '💰', 'error'); return; }
+  const enemies = new Set();
+  for (const nIso of sel.neighbors){
+    const n = state.countries[nIso];
+    if (n && (n.owner==='ai1'||n.owner==='ai2'||n.owner==='ai3')) enemies.add(n.owner);
+  }
+  if (!enemies.size){ flashMessage('❌ Рядом нет ИИ', 'error'); return; }
+  const target = [...enemies].find(ai => state.truces[ai]===0) || [...enemies][0];
+  res.money -= TRUCE_COST;
+  state.truces[target] = TRUCE_DURATION;
+  flashMessage('🕊 Перемирие с ' + PLAYERS[target].name, 'info');
+  refreshMap(); updateUI();
+}
+
+function triggerRandomEvent(){
+  const events = [
+    () => { let n=0; for (const c of Object.values(state.countries)) if (c.owner!=='neutral' && totalUnits(c)>1 && Math.random()<0.4){ loseUnits(c,1); n++; } toast('🦠 <b>Пандемия!</b> Пострадало ' + n); refreshMap(); },
+    () => { const b = 10 + Math.floor(Math.random()*10); const pids = ['player']; if (state.gameMode==='qr') pids.push('ai1'); for (const p of pids) state.resources[p].money += b; toast('💰 <b>Бум!</b> +' + b + '💰'); updateUI(); },
+    () => { const b = 3 + Math.floor(Math.random()*3); const pids = ['player']; if (state.gameMode==='qr') pids.push('ai1'); for (const p of pids) state.resources[p].rp += b; toast('🔬 <b>Наука!</b> +' + b + '⚗️'); updateUI(); },
+    () => { const ns = Object.values(state.countries).filter(c=>c.owner==='neutral'); const t = rand(ns); if (t){ t.units.infantry += 2; toast('⚔️ <b>Восстание</b> в ' + t.name); refreshMap(); } },
+    () => { const ns = Object.values(state.countries).filter(c=>c.owner==='neutral'); const t = rand(ns); if (t){ t.units.tanks++; toast('💥 <b>Переворот</b> в ' + t.name); refreshMap(); } }
+  ];
+  rand(events)();
+}
+
+/* =====================================================================
+   ХОДЫ
+   ===================================================================== */
+async function endTurn(){
+  if (state.gameOver) return;
+  const cur = state.currentTurn;
+
+  if (cur === 'player'){
+    state.selected = null;
+    if (state.gameMode === 'ai'){
+      showWaiting(true);
+      await runAllAI(['ai1','ai2','ai3']);
+      showWaiting(false);
+      if (state.gameOver) return;
+      state.currentTurn = 'player';
+      state.turnNumber++;
+      startPlayerTurn();
+    } else {
+      state.currentTurn = 'ai1';
+      updateUI(); refreshMap();
+      showWaiting(true);
+      await runAllAI(['ai2','ai3']);
+      showWaiting(false);
+      if (state.gameOver) return;
+      showQR('ai1');
+    }
+  } else if (cur === 'ai1'){
+    state.selected = null;
+    showWaiting(true);
+    await runAllAI(['ai2','ai3']);
+    showWaiting(false);
+    if (state.gameOver) return;
+    state.currentTurn = 'player';
+    state.turnNumber++;
+    showQR('player');
+  }
+}
+
+async function runAllAI(ais){
+  for (const ai of ais){
+    if (state.gameOver) return;
+    state.currentTurn = ai;
+    updateUI();
+    await sleep(200);
+    await runAITurn(ai);
+  }
+}
+async function runAITurn(aiId){
+  const mine = Object.values(state.countries).filter(c => c.owner===aiId);
+  if (!mine.length) return;
+
+  const money = mine.length;
+  const oil = mine.filter(c => c.hasOil).length;
+  let m = money, o = oil;
+
+  const shuffled = shuffle(mine.slice());
+  for (const c of shuffled){
+    if (m >= UNIT_TYPES.tanks.cost && o >= UNIT_TYPES.tanks.oil && Math.random()<0.6){
+      c.units.tanks++; m -= UNIT_TYPES.tanks.cost; o -= UNIT_TYPES.tanks.oil;
+    } else if (m >= UNIT_TYPES.infantry.cost){
+      c.units.infantry++; m -= UNIT_TYPES.infantry.cost;
+    }
+    if (totalUnits(c) > 20) c.units.infantry = 20 - c.units.tanks - c.units.air;
+  }
+  refreshMap();
+  await sleep(120);
+
+  const truceWithPlayer = state.truces[aiId] > 0;
+  const attacks = [];
+  for (const src of mine){
+    if (totalUnits(src) < 2) continue;
+    for (const nIso of src.neighbors){
+      const n = state.countries[nIso];
+      if (!n || n.owner === aiId) continue;
+      if (truceWithPlayer && n.owner === 'player') continue;
+      const adv = powerAttack(src) / Math.max(0.5, powerDefense(n));
+      if (adv > 1.3) attacks.push({ from: src.iso, to: nIso, adv });
+    }
+  }
+  attacks.sort((a,b)=>b.adv-a.adv);
+  for (let i=0; i<Math.min(3, attacks.length); i++){
+    if (state.gameOver) return;
+    const atk = attacks[i];
+    const from = state.countries[atk.from];
+    if (!from || totalUnits(from) < 2) continue;
+    const to = state.countries[atk.to];
+    if (!to || to.owner === aiId) continue;
+    resolveAttack(atk.from, atk.to, aiId);
+    await sleep(120);
+  }
+}
+
+/* =====================================================================
+   QR-ПЕРЕДАЧА С МУЛЬТИ-ЧАНКАМИ
+   ===================================================================== */
+function encodeState(){
+  const isos = Object.keys(state.countries);
+  const buf = new Uint8Array(5 + isos.length * 4 + 13);
+  let i = 0;
+  buf[i++] = 1;
+  buf[i++] = state.turnNumber & 0xFF;
+  buf[i++] = (state.turnNumber >> 8) & 0xFF;
+  buf[i++] = ['player','ai1','ai2','ai3'].indexOf(state.currentTurn);
+  buf[i++] = state.gameMode === 'qr' ? 2 : 0;
+  for (const iso of isos){
+    const c = state.countries[iso];
+    const oi = c.owner === 'neutral' ? 4 : ['player','ai1','ai2','ai3'].indexOf(c.owner);
+    buf[i++] = oi;
+    buf[i++] = Math.min(255, c.units.infantry);
+    buf[i++] = Math.min(255, c.units.tanks);
+    buf[i++] = Math.min(255, c.units.air);
+  }
+  for (const pid of ['player','ai1']){
+    const r = state.resources[pid];
+    buf[i++] = r.money & 0xFF; buf[i++] = (r.money >> 8) & 0xFF;
+    buf[i++] = r.oil & 0xFF;   buf[i++] = (r.oil >> 8) & 0xFF;
+    buf[i++] = r.rp & 0xFF;    buf[i++] = (r.rp >> 8) & 0xFF;
+  }
+  for (const pid of ['player','ai1']){
+    const t = state.techs[pid];
+    buf[i++] = t.attack; buf[i++] = t.defense; buf[i++] = t.income; buf[i++] = t.oil;
+  }
+  buf[i++] = state.truces.ai1;
+  buf[i++] = state.truces.ai2;
+  buf[i++] = state.truces.ai3;
+  return buf.slice(0, i);
+}
+function decodeState(bytes){
+  let i = 0;
+  const v = bytes[i++];
+  if (v !== 1) throw new Error('Bad version');
+  const turnNumber = bytes[i] | (bytes[i+1] << 8); i += 2;
+  const curIdx = bytes[i++];
+  const mode = bytes[i++];
+  const isos = Object.keys(state.countries);
+  for (const iso of isos){
+    const oi = bytes[i++];
+    state.countries[iso].owner = oi === 4 ? 'neutral' : ['player','ai1','ai2','ai3'][oi];
+    state.countries[iso].units = { infantry: bytes[i++], tanks: bytes[i++], air: bytes[i++] };
+  }
+  for (const pid of ['player','ai1']){
+    state.resources[pid].money = bytes[i] | (bytes[i+1] << 8); i += 2;
+    state.resources[pid].oil = bytes[i] | (bytes[i+1] << 8); i += 2;
+    state.resources[pid].rp = bytes[i] | (bytes[i+1] << 8); i += 2;
+  }
+  for (const pid of ['player','ai1']){
+    state.techs[pid].attack = bytes[i++];
+    state.techs[pid].defense = bytes[i++];
+    state.techs[pid].income = bytes[i++];
+    state.techs[pid].oil = bytes[i++];
+  }
+  state.truces.ai1 = bytes[i++];
+  state.truces.ai2 = bytes[i++];
+  state.truces.ai3 = bytes[i++];
+  state.turnNumber = turnNumber;
+  state.currentTurn = ['player','ai1','ai2','ai3'][curIdx];
+  state.gameMode = mode === 2 ? 'qr' : 'ai';
+}
+
+function encodeBase64Url(){
+  const raw = encodeState();
+  const compressed = pako.deflate(raw, { level: 9 });
+  let bin = '';
+  for (const b of compressed) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function decodeBase64Url(str){
+  str = str.replace(/-/g,'+').replace(/_/g,'/');
+  while (str.length % 4) str += '=';
+  const bin = atob(str);
+  const compressed = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) compressed[i] = bin.charCodeAt(i);
+  return pako.inflate(compressed);
+}
+
+function buildShareChunks(){
+  const base = location.origin + location.pathname;
+  const fullB64 = encodeBase64Url();
+
+  if (fullB64.length <= CHUNK_SIZE){
+    // Один QR — обычный режим
+    return [{ url: base + '#s=' + fullB64, label: null }];
+  }
+
+  // Мульти-чанк
+  const session = Math.random().toString(16).slice(2, 10);
+  const total = Math.ceil(fullB64.length / CHUNK_SIZE);
+  const chunks = [];
+  for (let i = 0; i < total; i++){
+    const data = fullB64.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+    const url = base + '#s=' + (i+1) + '/' + total + '/' + session + ':' + data;
+    chunks.push({ url, label: (i+1) + ' / ' + total });
+  }
+  return chunks;
+}
+
+function showQR(nextPlayer){
+  const who = nextPlayer === 'player' ? 'Игрока 1' : 'Игрока 2';
+  const chunks = buildShareChunks();
+  const container = $('qrContainer');
+  container.innerHTML = '';
+
+  if (chunks.length === 1){
+    // Один QR
+    $('qrWho').textContent = '📱 Ход ' + who;
+    $('qrHint').textContent = 'Друг сканирует QR камерой телефона';
+    $('qrUrl').textContent = chunks[0].url;
+    const wrap = document.createElement('div');
+    wrap.id = 'qrCanvasWrap';
+    const canvas = document.createElement('canvas');
+    canvas.id = 'qrCanvas';
+    wrap.appendChild(canvas);
+    container.appendChild(wrap);
+    QRCode.toCanvas(canvas, chunks[0].url, { width: 260, margin: 1, errorCorrectionLevel: 'L', color: { dark: '#0b1220', light: '#ffffff' }});
+  } else {
+    // Несколько QR
+    $('qrWho').textContent = '📱 Ход ' + who;
+    $('qrHint').textContent = '⚠️ Несколько QR — друг должен отсканировать все по очереди в приложении игры';
+    $('qrUrl').textContent = chunks[0].url;
+
+    const list = document.createElement('div');
+    list.className = 'qr-chunks';
+    chunks.forEach((chunk, idx) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'qr-chunk';
+      const label = document.createElement('div');
+      label.className = 'qr-chunk-label';
+      label.textContent = 'Часть ' + chunk.label;
+      const canvas = document.createElement('canvas');
+      wrap.appendChild(label);
+      wrap.appendChild(canvas);
+      list.appendChild(wrap);
+      QRCode.toCanvas(canvas, chunk.url, { width: 240, margin: 1, errorCorrectionLevel: 'L', color: { dark: '#0b1220', light: '#ffffff' }});
+    });
+    container.appendChild(list);
+  }
+
+  $('qrScreen').classList.remove('hidden');
+}
+function hideQR(){ $('qrScreen').classList.add('hidden'); }
+
+/* =====================================================================
+   ВСТРОЕННЫЙ СКАНЕР QR
+   ===================================================================== */
+let scannerStream = null;
+let scannerActive = false;
+
+async function startScanner(){
+  const video = $('scannerVideo');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  try {
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 }}
+    });
+  } catch(e){
+    flashMessage('❌ Не удалось открыть камеру', 'error');
+    return;
+  }
+
+  video.srcObject = scannerStream;
+  await video.play();
+  $('scannerContainer').classList.remove('hidden');
+  scannerActive = true;
+
+  function tick(){
+    if (!scannerActive) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA){
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+      if (code && code.data){
+        scannerActive = false;
+        stopScanner();
+        handleScannedUrl(code.data);
+        return;
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+function stopScanner(){
+  scannerActive = false;
+  if (scannerStream){
+    scannerStream.getTracks().forEach(t => t.stop());
+    scannerStream = null;
+  }
+  $('scannerContainer').classList.add('hidden');
+}
+
+function handleScannedUrl(text){
+  try {
+    // Может быть полный URL или только фрагмент
+    let frag = text;
+    const idx = text.indexOf('#s=');
+    if (idx >= 0) frag = text.slice(idx + 3);
+
+    const parsed = parseStateFragment(frag);
+    if (!parsed.chunked){
+      // Единый чанк — просто грузим
+      const bytes = decodeBase64Url(parsed.data);
+      decodeState(bytes);
+      finishUrlLoad();
+      return;
+    }
+
+    // Мульти-чанк
+    const key = 'qc_' + parsed.session + '_' + parsed.index;
+    const totalKey = 'qc_' + parsed.session + '_total';
+    localStorage.setItem(key, parsed.chunk);
+    localStorage.setItem(totalKey, String(parsed.total));
+
+    // Проверяем, все ли чанки собраны
+    const total = parsed.total;
+    const parts = [];
+    for (let i = 1; i <= total; i++){
+      const c = localStorage.getItem('qc_' + parsed.session + '_' + i);
+      if (!c){ parts.push(null); continue; }
+      parts.push(c);
+    }
+    const got = parts.filter(Boolean).length;
+    updateChunksUI(got, total);
+
+    if (got === total){
+      // Всё собрано — склеиваем и грузим
+      const fullB64 = parts.join('');
+      const bytes = decodeBase64Url(fullB64);
+      decodeState(bytes);
+      // Чистим
+      for (let i = 1; i <= total; i++) localStorage.removeItem('qc_' + parsed.session + '_' + i);
+      localStorage.removeItem(totalKey);
+      finishUrlLoad();
+    } else {
+      // Продолжаем сканировать
+      flashMessage('✅ Часть ' + parsed.index + '/' + total + ' загружена. Сканируйте ещё', 'success');
+    }
+  } catch(e){
+    console.error(e);
+    flashMessage('❌ Ошибка декодирования: ' + e.message, 'error');
+  }
+}
+
+function parseStateFragment(frag){
+  const m = frag.match(/^(\d+)\/(\d+)\/([a-f0-9]+):(.+)$/);
+  if (m){
+    return {
+      chunked: true,
+      index: parseInt(m[1], 10),
+      total: parseInt(m[2], 10),
+      session: m[3],
+      chunk: m[4]
+    };
+  }
+  return { chunked: false, data: frag };
+}
+
+function updateChunksUI(got, total){
+  $('chunksGot').textContent = got;
+  $('chunksTotal').textContent = total;
+  const missing = [];
+  for (let i = 1; i <= total; i++){
+    // Используем сессию из последнего известного
+    if (!localStorage.getItem('qc_' + currentSession + '_' + i)) missing.push(i);
+  }
+  $('chunkProgress').textContent = missing.length ? 'Не хватает частей: ' + missing.join(', ') : '✅ Все части собраны!';
+}
+
+let currentSession = null;
+
+async function scanFirstChunk(){
+  $('chunksScreen').classList.remove('hidden');
+  $('chunksGot').textContent = '0';
+  $('chunksTotal').textContent = '?';
+  $('chunkProgress').textContent = 'Наведите камеру на QR-код';
+  await startScanner();
+}
+
+function finishUrlLoad(){
+  hideQR();
+  stopScanner();
+  $('chunksScreen').classList.add('hidden');
+  $('loadingScreen').classList.add('hidden');
+  $('startScreen').classList.add('hidden');
+
+  refreshMap();
+  updateUI();
+
+  const cur = state.currentTurn;
+  if (isHuman(cur)){
+    // Обновляем currentSession при загрузке из чанков
+    setTimeout(() => {
+      flashMessage('👋 ' + playerDisplayName(cur) + ', ваш ход!', 'success');
+      startPlayerTurn();
+    }, 300);
+  } else {
+    showWaiting(true);
+    runAllAI([cur]).then(() => {
+      showWaiting(false);
+      advanceToHuman();
+    });
+  }
+}
+
+async function advanceToHuman(){
+  while (!isHuman(state.currentTurn) && !state.gameOver){
+    const cur = state.currentTurn;
+    await runAITurn(cur);
+    const order = ['player','ai1','ai2','ai3'];
+    const idx = order.indexOf(cur);
+    state.currentTurn = order[(idx + 1) % 4];
+    updateUI();
+    refreshMap();
+    await sleep(200);
+  }
+  if (state.gameOver) return;
+  if (state.currentTurn === 'player') state.turnNumber++;
+  startPlayerTurn();
+  flashMessage('👋 ' + playerDisplayName(state.currentTurn) + ', ваш ход!', 'success');
+}
+
+/* ---- Обработка URL при загрузке страницы ---- */
+function checkUrlOnLoad(){
+  const hash = location.hash;
+  const m = hash.match(/[#&]s=(.+)$/);
+  if (!m){
+    $('startScreen').classList.remove('hidden');
+    return;
+  }
+  const frag = m[1];
+  const parsed = parseStateFragment(frag);
+
+  if (parsed.chunked){
+    // Сохраняем первый чанк и открываем экран сканирования
+    currentSession = parsed.session;
+    localStorage.setItem('qc_' + parsed.session + '_' + parsed.index, parsed.chunk);
+    localStorage.setItem('qc_' + parsed.session + '_total', String(parsed.total));
+
+    const got = [];
+    for (let i = 1; i <= parsed.total; i++){
+      if (localStorage.getItem('qc_' + parsed.session + '_' + i)) got.push(i);
+    }
+
+    if (got.length === parsed.total){
+      // Уже все собраны (например, повторный запуск)
+      const fullB64 = got.map(i => localStorage.getItem('qc_' + parsed.session + '_' + i)).join('');
+      try {
+        const bytes = decodeBase64Url(fullB64);
+        decodeState(bytes);
+        for (let i = 1; i <= parsed.total; i++) localStorage.removeItem('qc_' + parsed.session + '_' + i);
+        finishUrlLoad();
+        return;
+      } catch(e){
+        console.error(e);
+      }
+    }
+
+    // Показываем экран сканирования оставшихся чанков
+    $('loadingScreen').classList.add('hidden');
+    $('startScreen').classList.add('hidden');
+    $('chunksScreen').classList.remove('hidden');
+    $('chunksGot').textContent = got.length;
+    $('chunksTotal').textContent = parsed.total;
+    updateChunksUI(got.length, parsed.total);
+    return;
+  }
+
+  // Единый чанк
+  try {
+    const bytes = decodeBase64Url(parsed.data);
+    decodeState(bytes);
+    finishUrlLoad();
+  } catch(e){
+    console.error(e);
+    showLoadingError('Не удалось декодировать состояние игры');
+  }
+}
+
+/* =====================================================================
+   ПОБЕДА
+   ===================================================================== */
+function checkVictory(){
+  if (state.gameOver) return;
+  const total = Object.keys(state.countries).length;
+  const counts = { player:0, ai1:0, ai2:0, ai3:0, neutral:0 };
+  for (const c of Object.values(state.countries)) counts[c.owner]++;
+  if (counts.player === 0){ state.gameOver = true; showEndScreen(false); return; }
+  if (counts.player/total >= WIN_PERCENT){ state.gameOver = true; showEndScreen(true); return; }
+  for (const ai of ['ai1','ai2','ai3']){
+    if (counts[ai]/total >= WIN_PERCENT){ state.gameOver = true; showEndScreen(false, ai); return; }
+  }
+}
+function showEndScreen(victory, winnerId=null){
+  const total = Object.keys(state.countries).length;
+  const counts = {};
+  for (const c of Object.values(state.countries)) counts[c.owner] = (counts[c.owner]||0)+1;
+  const title = victory ? '🏆 Победа!' : '💀 Поражение';
+  let sub;
+  if (victory) sub = 'Вы контролируете ' + counts.player + ' из ' + total + ' стран (' + Math.round(counts.player/total*100) + '%).';
+  else if (winnerId) sub = playerDisplayName(winnerId) + ' захватили ' + Math.round((counts[winnerId]||0)/total*100) + '% мира.';
+  else sub = 'Вы потеряли все свои территории.';
+  $('endTitle').textContent = title;
+  $('endSubtitle').textContent = sub;
+  $('endScreen').classList.remove('hidden');
+  updateUI();
+}
+function resetGame(){
+  location.hash = '';
+  $('endScreen').classList.add('hidden');
+  $('startScreen').classList.remove('hidden');
+  for (const c of Object.values(state.countries)){
+    c.owner = 'neutral';
+    c.units = { infantry: 1, tanks: 0, air: 0 };
+  }
+  state.markers.forEach(m=>m.remove()); state.markers.clear();
+  refreshMap(); updateUI();
+}
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+function showWaiting(v){ $('waitingScreen').classList.toggle('hidden', !v); }
+
+function updateUI(){
+  const counts = { player:0, ai1:0, ai2:0, ai3:0 };
+  for (const c of Object.values(state.countries)) if (counts[c.owner]!==undefined) counts[c.owner]++;
+
+  $('playerCount').textContent = counts.player;
+  $('ai1Count').textContent = counts.ai1;
+  $('ai2Count').textContent = counts.ai2;
+  $('ai3Count').textContent = counts.ai3;
+
+  const curRes = getRes();
+  $('moneyLabel').textContent = curRes.money;
+  $('oilLabel').textContent = curRes.oil;
+  $('rpLabel').textContent = curRes.rp;
+
+  const t = $('turnLabel');
+  if (state.gameOver){ t.textContent='Игра окончена'; t.classList.remove('enemy'); }
+  else {
+    t.textContent = playerDisplayName(state.currentTurn) + ' · ' + state.turnNumber;
+    t.classList.toggle('enemy', !isHuman(state.currentTurn));
+  }
+  $('modeLabel').textContent = state.gameMode === 'qr' ? '📱 QR' : '🤖 ИИ';
+
+  const info = $('selectionInfo');
+  const actionsBar = $('actionsBar');
+  const unitButtons = $('unitButtons');
+  const cardsBtn = $('cardsBtn');
+  const techBtn = $('techBtn');
+  const truceBtn = $('truceBtn');
+  const endTurnBtn = $('endTurnBtn');
+
+  const myPid = state.currentTurn;
+  const human = isHuman(myPid);
+  endTurnBtn.disabled = !human || state.gameOver;
+
+  if (state.selected && state.countries[state.selected]){
+    actionsBar.style.display = 'flex';
+    const c = state.countries[state.selected];
+    const u = c.units;
+    info.innerHTML =
+      '<b>' + c.name + '</b> · 💪 ' + Math.round(powerAttack(c)) + '/' + Math.round(powerDefense(c)) + '<br>' +
+      '<span class="unit-tag">🪖 ' + u.infantry + '</span>' +
+      '<span class="unit-tag">🛡️ ' + u.tanks + '</span>' +
+      '<span class="unit-tag">✈️ ' + u.air + '</span>' +
+      (c.hasOil ? '<span class="unit-tag">🛢 нефть</span>' : '');
+
+    unitButtons.innerHTML = '';
+    for (const [type, tt] of Object.entries(UNIT_TYPES)){
+      const can = getRes().money >= tt.cost && getRes().oil >= tt.oil &&
+                  human && !state.gameOver && totalUnits(c) < 20;
+      const btn = document.createElement('button');
+      btn.className = 'btn-secondary btn-small'; btn.disabled = !can;
+      btn.textContent = tt.icon + ' +1 · 💰' + tt.cost + (tt.oil ? ' 🛢' + tt.oil : '');
+      btn.addEventListener('click', () => buyUnit(type));
+      unitButtons.appendChild(btn);
+    }
+    cardsBtn.disabled = !human || state.gameOver;
+    techBtn.disabled = !human || state.gameOver;
+    let hasEnemyNear = false;
+    for (const nIso of c.neighbors){
+      const n = state.countries[nIso];
+      if (n && (n.owner==='ai1'||n.owner==='ai2'||n.owner==='ai3')){ hasEnemyNear = true; break; }
+    }
+    truceBtn.disabled = !hasEnemyNear || c.owner !== myPid || !human || state.gameOver || getRes().money < TRUCE_COST;
+  } else {
+    actionsBar.style.display = 'none';
+    if (state.gameOver) info.textContent = 'Игра окончена';
+    else if (human) info.textContent = playerDisplayName(myPid) + ', выберите страну';
+    else info.textContent = 'Ход ' + playerDisplayName(myPid) + '…';
+  }
+}
+
+/* =====================================================================
+   СОБЫТИЯ UI
+   ===================================================================== */
+function bindUI(){
+  let selectedMode = 'ai';
+  document.querySelectorAll('.mode-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      selectedMode = card.dataset.mode;
+    });
+  });
+
+  $('startBtn').addEventListener('click', () => startGame(selectedMode));
+  $('restartBtn').addEventListener('click', resetGame);
+  $('endTurnBtn').addEventListener('click', endTurn);
+  $('techBtn').addEventListener('click', openTech);
+  $('techCloseBtn').addEventListener('click', ()=> $('techScreen').classList.add('hidden'));
+  $('cardsBtn').addEventListener('click', openCards);
+  $('cardsCloseBtn').addEventListener('click', closeCards);
+  $('truceBtn').addEventListener('click', doTruce);
+
+  $('qrContinueBtn').addEventListener('click', () => {
+    hideQR();
+    startPlayerTurn();
+    flashMessage('👋 ' + playerDisplayName(state.currentTurn) + ', ваш ход!', 'success');
+  });
+  $('copyUrlBtn').addEventListener('click', () => {
+    navigator.clipboard?.writeText($('qrUrl').textContent).then(
+      () => flashMessage('📋 Скопировано', 'success'),
+      () => flashMessage('❌ Ошибка', 'error')
+    );
+  });
+
+  $('retryBtn').addEventListener('click', () => location.reload());
+  $('scanStartBtn').addEventListener('click', () => scanFirstChunk());
+  $('scanNextBtn').addEventListener('click', async () => {
+    if (currentSession){
+      // Найдём total
+      const total = parseInt(localStorage.getItem('qc_' + currentSession + '_total') || '0', 10);
+      const got = [];
+      for (let i = 1; i <= total; i++){
+        if (localStorage.getItem('qc_' + currentSession + '_' + i)) got.push(i);
+      }
+      updateChunksUI(got.length, total);
+    }
+    await startScanner();
+  });
+  $('chunksCancelBtn').addEventListener('click', () => {
+    stopScanner();
+    $('chunksScreen').classList.add('hidden');
+    location.hash = '';
+    $('startScreen').classList.remove('hidden');
+  });
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){
+      state.selected = null;
+      state.pendingAction = null;
+      closeCards();
+      $('techScreen').classList.add('hidden');
+      updateUI(); refreshMap();
+    }
+  });
+}
+
+/* =====================================================================
+   ЗАПУСК
+   ===================================================================== */
+async function main(){
+  try {
+    setLoadingStatus('Подготовка…', 5);
+    const gj = await loadCountries();
+    setLoadingStatus('Строим страны…', 60);
+    buildState(gj);
+    setLoadingStatus('Ищем соседей…', 75);
+    computeNeighbors();
+    setLoadingStatus('Инициализация карты…', 85);
+    bindUI();
+    initMap();
+  } catch(e){
+    console.error(e);
+    showLoadingError('Не удалось загрузить карту мира. ' + e.message + '. Проверьте интернет и обновите страницу.');
+  }
+}
+main();
+</script>
+</body>
+</html>
