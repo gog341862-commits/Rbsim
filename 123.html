@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Ультразвуковой чат</title>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: system-ui,-apple-system,sans-serif; max-width: 760px; margin: 1rem auto; padding: 0 .75rem; }
+  h1 { font-size: 1.2rem; }
+  #log { border: 1px solid #ccc; border-radius: 8px; min-height: 180px; max-height: 50vh; overflow-y: auto; padding: .5rem; margin: .5rem 0; background: #fafafa; }
+  .msg { padding: .3rem .6rem; margin: .2rem 0; border-radius: 8px; word-break: break-word; }
+  .me { background: #c8e6c9; }
+  .them { background: #e3f2fd; }
+  .sys { background: #fff3e0; font-size: .85em; color: #555; }
+  .err { background: #ffcdd2; font-size: .85em; }
+  .row { display: flex; gap: .5rem; margin-bottom: .5rem; }
+  input[type=text] { flex: 1; padding: .6rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; }
+  button { padding: .6rem .9rem; font-size: 1rem; border: 0; border-radius: 6px; background: #1976d2; color: #fff; cursor: pointer; }
+  button:disabled { background: #bbb; cursor: default; }
+  #micOff { background: #c62828; }
+  .status { font-size: .85em; color: #666; margin: .25rem 0; }
+  details { font-size: .85em; color: #555; margin-top: .5rem; }
+  summary { cursor: pointer; }
+  details input { width: 6em; }
+</style>
+</head>
+<body>
+
+<h1>Ультразвуковой чат — тест</h1>
+<div class="status" id="status">Микрофон выключен</div>
+<div class="row">
+  <button id="micOn">Включить микрофон</button>
+  <button id="micOff" disabled>Выключить</button>
+</div>
+<div id="log"></div>
+<div class="row">
+  <input id="msg" type="text" placeholder="Сообщение…" autocomplete="off">
+  <button id="send">Передать</button>
+</div>
+
+<details>
+  <summary>Параметры (для отладки)</summary>
+  <label>f0 (бит 0): <input id="f0" type="number" value="18000"> Гц</label>
+  <label>f1 (бит 1): <input id="f1" type="number" value="19000"> Гц</label>
+  <label>длит. бита: <input id="bitms" type="number" value="60"> мс</label>
+</details>
+
+<script>
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const logEl = $('log'), statusEl = $('status'), msgEl = $('msg');
+  const sendBtn = $('send'), micOnBtn = $('micOn'), micOffBtn = $('micOff');
+  const f0El = $('f0'), f1El = $('f1'), bitmsEl = $('bitms');
+
+  const cfg = { f0: 18000, f1: 19000, bitMs: 60 };
+  function readCfg() {
+    cfg.f0 = Math.max(200, +f0El.value || 18000);
+    cfg.f1 = Math.max(201, +f1El.value || 19000);
+    cfg.bitMs = Math.min(500, Math.max(10, +bitmsEl.value || 60));
+  }
+  [f0El, f1El, bitmsEl].forEach(el => el.addEventListener('change', () => {
+    readCfg();
+    log('sys', `Параметры: f0=${cfg.f0} Гц, f1=${cfg.f1} Гц, бит=${cfg.bitMs} мс`);
+  }));
+  readCfg();
+
+  function log(cls, text) {
+    const d = document.createElement('div');
+    d.className = 'msg ' + cls;
+    d.textContent = text;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  log('sys', 'Готово. Включите микрофон, введите текст и нажмите «Передать».');
+
+  // ---------- AudioContext ----------
+  let audioCtx = null;
+  function getCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+  async function resumeCtx() {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') {
+      try { await ctx.resume(); } catch (e) {}
+    }
+    return ctx;
+  }
+
+  // ---------- Sender ----------
+  function buildBits(text) {
+    let bytes = new TextEncoder().encode(text);
+    if (bytes.length > 200) bytes = bytes.slice(0, 200);
+    const out = [];
+    // Преамбула: 16 бит 1,0,1,0,...
+    for (let i = 0; i < 16; i++) out.push(i % 2 === 0 ? 1 : 0);
+    // Байт длины
+    appendByte(out, bytes.length);
+    // Данные
+    for (const b of bytes) appendByte(out, b);
+    return out;
+  }
+  function appendByte(bits, b) {
+    bits.push(1);                       // start
+    for (let i = 0; i < 8; i++) bits.push((b >> i) & 1); // LSB first
+    bits.push(0);                       // stop
+  }
+
+  async function sendText(text) {
+    text = (text || '').trim();
+    if (!text) return;
+    readCfg();
+    const ctx = await resumeCtx();
+
+    const bits = buildBits(text);
+    const bitDur = cfg.bitMs / 1000;
+    const totalDur = bits.length * bitDur;
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const t0 = ctx.currentTime + 0.05;
+    for (let i = 0; i < bits.length; i++) {
+      osc.frequency.setValueAtTime(bits[i] ? cfg.f1 : cfg.f0, t0 + i * bitDur);
+    }
+
+    const amp = 0.4;
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(amp, t0 + 0.01);
+    gain.gain.setValueAtTime(amp, t0 + totalDur - 0.01);
+    gain.gain.linearRampToValueAtTime(0, t0 + totalDur);
+
+    osc.start(t0);
+    osc.stop(t0 + totalDur + 0.05);
+
+    log('me', text);
+    const ms = Math.round(totalDur * 1000);
+    statusEl.textContent = `Передача… ~${ms} мс`;
+    setTimeout(() => {
+      statusEl.textContent = micStream ? 'Слушаю…' : 'Микрофон выключен';
+    }, ms + 150);
+  }
+
+  sendBtn.addEventListener('click', () => {
+    const t = msgEl.value;
+    msgEl.value = '';
+    sendText(t);
+  });
+  msgEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); sendBtn.click(); }
+  });
+
+  // ---------- Receiver ----------
+  let micStream = null;
+  let analyser = null;
+  let timeBuf = null;
+  let recvTimer = null;
+
+  async function startMic() {
+    readCfg();
+    const ctx = await resumeCtx();
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1
+        }
+      });
+    } catch (e) {
+      log('err', 'Не удалось получить микрофон: ' + e.message);
+      return;
+    }
+    const src = ctx.createMediaStreamSource(micStream);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;  // ~10.7 мс при 48 кГц
+    timeBuf = new Float32Array(analyser.fftSize);
+    src.connect(analyser);
+
+    micOnBtn.disabled = true;
+    micOffBtn.disabled = false;
+    statusEl.textContent = 'Слушаю…';
+
+    resetReceiver();
+    if (recvTimer) clearInterval(recvTimer);
+    recvTimer = setInterval(recvTick, 5);
+  }
+
+  function stopMic() {
+    if (recvTimer) { clearInterval(recvTimer); recvTimer = null; }
+    if (micStream) {
+      micStream.getTracks().forEach(t => t.stop());
+      micStream = null;
+    }
+    analyser = null;
+    micOnBtn.disabled = false;
+    micOffBtn.disabled = true;
+    statusEl.textContent = 'Микрофон выключен';
+  }
+
+  micOnBtn.addEventListener('click', startMic);
+  micOffBtn.addEventListener('click', stopMic);
+
+  // Алгоритм Гёрцеля — оценка мощности на целевой частоте
+  function goertzel(samples, sr, freq) {
+    const N = samples.length;
+    const k = Math.round(N * freq / sr);
+    const w = 2 * Math.PI * k / N;
+    const cw = Math.cos(w);
+    const coeff = 2 * cw;
+    let s1 = 0, s2 = 0;
+    for (let i = 0; i < N; i++) {
+      const s0 = samples[i] + coeff * s1 - s2;
+      s2 = s1; s1 = s0;
+    }
+    return s1 * s1 + s2 * s2 - coeff * s1 * s2;
+  }
+
+  function detectTone() {
+    if (!analyser) return -1;
+    analyser.getFloatTimeDomainData(timeBuf);
+    let sum = 0;
+    for (let i = 0; i < timeBuf.length; i++) sum += timeBuf[i] * timeBuf[i];
+    const rms = Math.sqrt(sum / timeBuf.length);
+    if (rms < 0.003) return -1;
+    const sr = audioCtx.sampleRate;
+    const p0 = goertzel(timeBuf, sr, cfg.f0);
+    const p1 = goertzel(timeBuf, sr, cfg.f1);
+    if (p0 > p1 * 3) return 0;
+    if (p1 > p0 * 3) return 1;
+    return -1;
+  }
+
+  // Состояние приёмника
+  const PREAMBLE = [];
+  for (let i = 0; i < 16; i++) PREAMBLE.push(i % 2 === 0 ? 1 : 0);
+
+  let rstate = 'idle';
+  let t0 = 0;
+  let sampledBits = [];
+  let lastSignalTime = 0;
+  let expectedLen = -1;
+
+  function resetReceiver() {
+    rstate = 'idle';
+    t0 = 0;
+    sampledBits = [];
+    lastSignalTime = 0;
+    expectedLen = -1;
+  }
+
+  function recvTick() {
+    if (!analyser) return;
+    const tone = detectTone();
+    const now = performance.now();
+
+    if (tone !== -1) lastSignalTime = now;
+
+    if (rstate === 'idle') {
+      if (tone === 1) {
+        // Фронт — считаем, что началась преамбула
+        rstate = 'read';
+        t0 = now;
+        sampledBits = [];
+        expectedLen = -1;
+      }
+      return;
+    }
+
+    // rstate === 'read'
+    const bitDur = cfg.bitMs;
+    while (true) {
+      const k = sampledBits.length;
+      const sampleAt = t0 + (k + 0.5) * bitDur;
+      if (now < sampleAt) break;
+      sampledBits.push(tone);
+      processBits();
+      if (rstate === 'idle') return;
+      if (sampledBits.length > 500) { resetReceiver(); return; }
+    }
+
+    // Долгая тишина после начала приёма — сброс
+    if (sampledBits.length > 20 && now - lastSignalTime > 500) {
+      resetReceiver();
+    }
+  }
+
+  function processBits() {
+    const bits = sampledBits;
+
+    // Проверка преамбулы
+    const n = Math.min(bits.length, 16);
+    for (let i = 0; i < n; i++) {
+      if (bits[i] !== PREAMBLE[i]) { resetReceiver(); return; }
+    }
+    if (bits.length < 26) return;
+
+    // Длина
+    if (expectedLen === -1) {
+      const lb = decodeByte(bits.slice(16, 26));
+      if (lb === null || lb > 200) { resetReceiver(); return; }
+      expectedLen = lb;
+    }
+
+    const totalBits = 16 + 10 + expectedLen * 10;
+    if (bits.length < totalBits) return;
+
+    // Данные
+    const dataBytes = [];
+    for (let i = 0; i < expectedLen; i++) {
+      const off = 16 + 10 + i * 10;
+      const b = decodeByte(bits.slice(off, off + 10));
+      if (b === null) { resetReceiver(); return; }
+      dataBytes.push(b);
+    }
+
+    let text = '';
+    try {
+      text = new TextDecoder('utf-8', { fatal: false })
+        .decode(new Uint8Array(dataBytes));
+    } catch (e) {
+      text = '[ошибка декодирования]';
+    }
+    if (text) log('them', text);
+    resetReceiver();
+  }
+
+  function decodeByte(b10) {
+    if (b10.length < 10) return null;
+    if (b10[0] !== 1) return null;   // start
+    if (b10[9] !== 0) return null;   // stop
+    let b = 0;
+    for (let i = 0; i < 8; i++) if (b10[1 + i] === 1) b |= (1 << i);
+    return b;
+  }
+
+  window.__ultra = { cfg, sendText };
+})();
+</script>
+</body>
+</html>
