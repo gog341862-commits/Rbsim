@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Звуковой морской бой v3</title>
+<style>
+  :root{
+    --bg:#0e1116; --fg:#e8eef7; --muted:#8b98ab;
+    --p1:#4fc3f7; --p2:#ff8a65; --card:#171c24; --line:#2a323f;
+    --ok:#5dd39e; --warn:#ffd166; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%}
+  body{
+    background:radial-gradient(1200px 600px at 50% -10%, #1a2230, var(--bg));
+    color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex;justify-content:center;padding:12px;
+  }
+  .app{width:100%;max-width:440px}
+  h1{font-size:17px;text-align:center;margin:0 0 2px;font-weight:600}
+  .sub{text-align:center;color:var(--muted);font-size:11px;margin-bottom:10px}
+
+  .bar{display:flex;gap:8px;align-items:center;margin-bottom:8px;
+       background:var(--card);border:1px solid var(--line);border-radius:12px;padding:7px 11px}
+  .roleTag{font-size:14px;font-weight:700;width:24px;text-align:center}
+  .roleTag.p1{color:var(--p1)} .roleTag.p2{color:var(--p2)}
+  .status{flex:1;font-size:12.5px;line-height:1.3}
+  .lvl{width:50px;height:7px;border-radius:4px;background:#0b0e13;overflow:hidden;border:1px solid var(--line)}
+  .lvl i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#5dd39e,#ffd166,#ff6b6b);transition:width .06s}
+
+  .boards{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+  .boardWrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:7px}
+  .boardLabel{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;justify-content:space-between}
+  .boardLabel b{color:var(--fg)}
+  .board{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+  .bcell{
+    aspect-ratio:1;border-radius:3px;background:#10151d;border:1px solid #1c2430;
+    cursor:default;font-size:12px;display:flex;align-items:center;justify-content:center;
+    color:#5a6a80;user-select:none;transition:.1s;position:relative;
+  }
+  .board.enemy .bcell.u{cursor:pointer;background:#10151d}
+  .board.enemy .bcell.u:hover{background:#1c2e44;border-color:#2d4a6b}
+  .board.enemy .bcell.u:active{transform:scale(.92)}
+  .bcell.s{background:#2d4a6b;border-color:#3d5a7b}
+  .bcell.h{background:#8b2020;border-color:#c03030;color:#fff;font-weight:700}
+  .bcell.m{background:#141920;color:#3d4a5c}
+  .bcell.p{background:#3a3520;color:#ffd166;animation:pulse 1s infinite}
+  @keyframes pulse{50%{background:#4a4525}}
+  .bcell.win{background:#5dd39e;border-color:#5dd39e;color:#0e1116}
+
+  .controls{display:flex;gap:8px;margin-bottom:8px}
+  button.btn{
+    flex:1;padding:10px;border-radius:11px;border:1px solid var(--line);
+    background:var(--card);color:var(--fg);font-size:12.5px;font-weight:500;cursor:pointer;transition:.15s;
+  }
+  button.btn:hover{background:#1e2632}
+  button.btn:disabled{opacity:.4;cursor:default}
+  button.btn.primary{background:#1c3a5c;border-color:#2b5885}
+  button.btn.primary:hover{background:#22466e}
+
+  .stats{display:flex;gap:5px;font-size:10px;color:#66738a;margin-bottom:6px;font-family:ui-monospace,Menlo,monospace;flex-wrap:wrap}
+  .stats span{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+  .stats b{color:var(--fg);font-weight:600}
+
+  .log{
+    background:var(--card);border:1px solid var(--line);border-radius:11px;
+    padding:7px 10px;font-size:10px;color:var(--muted);min-height:100px;
+    line-height:1.45;font-family:ui-monospace,Menlo,monospace;
+  }
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .log .ok{color:var(--ok)} .log .warn{color:var(--warn)} .log .bad{color:var(--bad)} .log .hi{color:#c9d3e3}
+
+  .overlay{
+    position:fixed;inset:0;background:rgba(8,10,14,.94);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .overlay.hidden{display:none}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:22px 18px;max-width:340px;width:100%;text-align:center;
+  }
+  .card h2{margin:0 0 6px;font-size:17px}
+  .card p{color:var(--muted);font-size:12px;margin:0 0 14px;line-height:1.5}
+  .roles{display:flex;gap:10px;justify-content:center;margin-bottom:14px}
+  .roleBtn{
+    flex:1;padding:14px 6px;border-radius:14px;border:1px solid var(--line);
+    background:#10151d;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;
+  }
+  .roleBtn.p1{color:var(--p1)} .roleBtn.p2{color:var(--p2)}
+  .roleBtn:hover{transform:translateY(-2px);background:#182130}
+  .hint{font-size:11px;color:#66738a;line-height:1.6;margin:0}
+  .err{color:var(--bad);font-size:12px;margin-top:8px;min-height:16px}
+
+  .banner{
+    position:fixed;left:0;right:0;top:44%;text-align:center;font-size:34px;font-weight:700;
+    pointer-events:none;opacity:0;transition:.4s;text-shadow:0 4px 30px rgba(0,0,0,.6);z-index:40;
+  }
+  .banner.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>🔊 Морской бой по звуку v3</h1>
+  <div class="sub">клик = выстрел · результат прилетает 3 раза для надёжности</div>
+
+  <div class="bar">
+    <span class="roleTag" id="roleTag">–</span>
+    <span class="status" id="status">Ожидание…</span>
+    <div class="lvl"><i id="lvlBar"></i></div>
+  </div>
+
+  <div class="boards">
+    <div class="boardWrap">
+      <div class="boardLabel"><span>Ваше поле</span><span id="ownShips"></span></div>
+      <div class="board" id="ownBoard"></div>
+    </div>
+    <div class="boardWrap">
+      <div class="boardLabel"><span>Поле соперника — стреляйте сюда</span><span id="enemyInfo"></span></div>
+      <div class="board enemy" id="enemyBoard"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" id="btnNew">Новая игра</button>
+    <button class="btn" id="btnAbort" disabled>Отмена</button>
+  </div>
+
+  <div class="stats">
+    <span>TX: <b id="statTx">0</b></span>
+    <span>OK: <b id="statOk">0</b></span>
+    <span>BAD: <b id="statFail">0</b></span>
+  </div>
+
+  <div class="log" id="log"></div>
+</div>
+
+<div class="banner" id="banner"></div>
+
+<div class="overlay" id="startScreen">
+  <div class="card">
+    <h2>Выберите игрока</h2>
+    <p>Игрок <b style="color:var(--p1)">1</b> стреляет первым.<br>На втором устройстве выберите <b style="color:var(--p2)">2</b>.</p>
+    <div class="roles">
+      <button class="roleBtn p1" id="roleP1">Игрок 1</button>
+      <button class="roleBtn p2" id="roleP2">Игрок 2</button>
+    </div>
+    <p class="hint">
+      Разрешите микрофон. Устройства рядом (10–30 см),<br>
+      громкость на максимум, минимум шума.
+    </p>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===================== ПРОТОКОЛ ===================== */
+const F0 = 900, F1 = 1800, F_SYNC = 2700;
+const BIT_MS = 20, SYNC_MS = 250;
+const PREAMBLE = [1,0,1,0,1,0,1,0];
+const DATA_BYTES = 4, CHECK_XOR = 0x5A;
+const T_SHOT = 1, T_RESULT = 2, T_ACK = 3, T_RESET = 4;
+
+/* ↓↓↓ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: 5000 мс вместо 2000.
+   RESULT доходит до стрелка через ~2.3 с после его выстрела.
+   С окном 2 с — стабильно промах, с окном 5 с — попадание. */
+const LISTEN_MS = 5000;
+const MAX_ATTEMPTS = 30;
+
+// Сколько раз повторить RESULT и ACK
+const RESULT_REPEATS = 3;
+const RESULT_GAP_MS = 250;
+const ACK_REPEATS = 2;
+const ACK_GAP_MS = 120;
+
+/* ===================== ПРИЁМ ===================== */
+const SYNC_WIN = 800, SYNC_STEP = 200;
+const SYNC_THRESH = 0.14, SYNC_MIN_FR = 8;
+const ALIGN_FROM_MS = -22, ALIGN_TO_MS = 14, ALIGN_STEP_MS = 0.5;
+const BIT_WIN_FRAC = 0.75, PRE_THRESH = 0.30;
+
+/* ===================== ИГРА ===================== */
+const N = 8;
+const SHIP_SIZES = [4, 3, 2, 1];
+const other = p => p === 1 ? 2 : 1;
+
+/* ===================== СОСТОЯНИЕ ===================== */
+let audioCtx = null, micStream = null, scriptNode = null;
+let _sr = 48000, _c0 = 0, _c1 = 0, _cS = 0;
+let myRole = 0;
+let isTransmittingData = false;
+let suppressReceive = false;
+
+const RB_BITS = 18, RB_SIZE = 1 << RB_BITS, RB_MASK = RB_SIZE - 1;
+const rb = new Float32Array(RB_SIZE);
+let rbTotal = 0, procIdx = 0;
+let dcX = 0, dcY = 0;
+
+let syncActive = false, syncFrames = 0, syncEndAbs = 0;
+let pendingDecode = null;
+
+let waiter = null;
+let txAbortFlag = false;
+let pktCounter = Math.floor(Math.random() * 200);
+let statTx = 0, statOk = 0, statFail = 0;
+
+let myBoard    = new Array(N*N).fill('e');
+let myShips    = [];
+let enemyBoard = new Array(N*N).fill('u');
+const shotResults = new Map();
+let turn = 1, gameOver = false, winner = 0;
+
+/* ===================== DOM ===================== */
+const $ = id => document.getElementById(id);
+const statusEl = $('status'), roleTagEl = $('roleTag'), logEl = $('log');
+const lvlBar = $('lvlBar'), startScr = $('startScreen'), errEl = $('err');
+const btnAbort = $('btnAbort'), bannerEl = $('banner');
+const ownBoardEl = $('ownBoard'), enemyBoardEl = $('enemyBoard');
+const ownShipsEl = $('ownShips'), enemyInfoEl = $('enemyInfo');
+
+const ownCells = [], enemyCells = [];
+for (let i = 0; i < N*N; i++) {
+  const a = document.createElement('div');
+  a.className = 'bcell'; a.dataset.i = i;
+  ownBoardEl.appendChild(a); ownCells.push(a);
+  const b = document.createElement('div');
+  b.className = 'bcell u'; b.dataset.i = i;
+  b.addEventListener('click', () => doShoot(i));
+  enemyBoardEl.appendChild(b); enemyCells.push(b);
+}
+
+/* ===================== ЛОГ ===================== */
+const logLines = [];
+function log(msg, cls) {
+  const t = new Date().toLocaleTimeString('ru-RU', {hour12:false});
+  logLines.unshift({t, msg, cls: cls || ''});
+  if (logLines.length > 8) logLines.pop();
+  logEl.innerHTML = logLines.map(l =>
+    `<div class="${l.cls}">[${l.t}] ${l.msg}</div>`).join('');
+}
+function updateStats() {
+  $('statTx').textContent = statTx;
+  $('statOk').textContent = statOk;
+  $('statFail').textContent = statFail;
+}
+
+/* ===================== РАССТАНОВКА ===================== */
+function randomPlacement() {
+  const grid = new Array(N*N).fill(0);
+  const ships = [];
+  for (let i = 0; i < SHIP_SIZES.length; i++) {
+    const size = SHIP_SIZES[i];
+    let placed = false;
+    for (let t = 0; t < 300 && !placed; t++) {
+      const horiz = Math.random() < 0.5;
+      const r = Math.floor(Math.random() * N);
+      const c = Math.floor(Math.random() * N);
+      if (horiz ? c + size > N : r + size > N) continue;
+      const cells = [];
+      let ok = true;
+      for (let k = 0; k < size; k++) {
+        const rr = horiz ? r : r + k;
+        const cc = horiz ? c + k : c;
+        const idx = rr * N + cc;
+        if (grid[idx] !== 0) { ok = false; break; }
+        cells.push(idx);
+      }
+      if (!ok) continue;
+      const id = i + 1;
+      for (const idx of cells) grid[idx] = id;
+      ships.push({ cells, hits: 0 });
+      placed = true;
+    }
+    if (!placed) return randomPlacement();
+  }
+  return { grid, ships };
+}
+
+function resetLocal() {
+  const { grid, ships } = randomPlacement();
+  myShips = ships;
+  myBoard = grid.map(v => v ? 's' : 'e');
+  enemyBoard = new Array(N*N).fill('u');
+  shotResults.clear();
+  turn = 1;
+  gameOver = false;
+  winner = 0;
+  render();
+}
+
+/* ===================== АУДИО ===================== */
+async function startGame(role) {
+  errEl.textContent = '';
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.resume();
+    _sr = audioCtx.sampleRate;
+    _c0 = 2 * Math.cos(2 * Math.PI * F0 / _sr);
+    _c1 = 2 * Math.cos(2 * Math.PI * F1 / _sr);
+    _cS = 2 * Math.cos(2 * Math.PI * F_SYNC / _sr);
+
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:1 }
+    });
+    const src = audioCtx.createMediaStreamSource(micStream);
+    scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
+    scriptNode.onaudioprocess = onAudioProcess;
+    const mute = audioCtx.createGain(); mute.gain.value = 0;
+    src.connect(scriptNode); scriptNode.connect(mute); mute.connect(audioCtx.destination);
+
+    myRole = role;
+    roleTagEl.textContent = role === 1 ? '1' : '2';
+    roleTagEl.className = 'roleTag p' + role;
+
+    startScr.classList.add('hidden');
+    resetLocal();
+    log('Вы игрок ' + role + ', Fs=' + _sr + ' Гц', 'ok');
+    log(role === 1 ? 'Кликните по полю соперника' : 'Ждём выстрел Игрока 1', 'hi');
+    updateStatusUI();
+    beep(880, 0.09);
+  } catch (e) {
+    errEl.textContent = 'Ошибка: ' + (e && e.message ? e.message : e);
+    console.error(e);
+  }
+}
+$('roleP1').addEventListener('click', () => startGame(1));
+$('roleP2').addEventListener('click', () => startGame(2));
+
+/* ===================== ПРИЁМ ===================== */
+function onAudioProcess(e) {
+  const inp = e.inputBuffer.getChannelData(0);
+  for (let i = 0; i < inp.length; i++) {
+    const x = inp[i];
+    const y = x - dcX + 0.997 * dcY;
+    dcX = x; dcY = y;
+    rb[rbTotal & RB_MASK] = y; rbTotal++;
+  }
+  let sum = 0;
+  for (let i = 0; i < inp.length; i += 4) sum += inp[i]*inp[i];
+  lvlBar.style.width = Math.min(100, Math.sqrt(sum/(inp.length/4)) * 900).toFixed(0) + '%';
+  processAudio();
+}
+
+function goertzel(start, len, coef) {
+  let s1 = 0, s2 = 0;
+  for (let i = 0; i < len; i++) {
+    const x = rb[(start + i) & RB_MASK];
+    const s0 = x + coef * s1 - s2;
+    s2 = s1; s1 = s0;
+  }
+  return s1*s1 + s2*s2 - coef*s1*s2;
+}
+function goertzelPair(start, len) {
+  let a1=0,a2=0,b1=0,b2=0;
+  const c0 = _c0, c1 = _c1;
+  for (let i = 0; i < len; i++) {
+    const x = rb[(start + i) & RB_MASK];
+    const a0 = x + c0*a1 - a2; a2=a1; a1=a0;
+    const b0 = x + c1*b1 - b2; b2=b1; b1=b0;
+  }
+  return {
+    p0: a1*a1 + a2*a2 - c0*a1*a2,
+    p1: b1*b1 + b2*b2 - c1*b1*b2
+  };
+}
+function energy(start, len) {
+  let s = 0;
+  for (let i = 0; i < len; i++) { const x = rb[(start+i)&RB_MASK]; s += x*x; }
+  return s / len;
+}
+
+function processAudio() {
+  if (rbTotal < SYNC_WIN) return;
+  if (pendingDecode) {
+    if (rbTotal >= pendingDecode.needed) {
+      const p = pendingDecode; pendingDecode = null;
+      try { performDecode(p.syncEndAbs); } catch(e){ console.error(e); }
+      // Отматываем на конец пакета, но не дальше — важно ловить следующий RESULT
+      procIdx = Math.max(procIdx, p.syncEndAbs + Math.round(0.001*_sr));
+    }
+    return;
+  }
+  if (suppressReceive) { procIdx = Math.max(procIdx, rbTotal - SYNC_WIN); return; }
+  if (procIdx < rbTotal - SYNC_WIN - 65536) procIdx = rbTotal - SYNC_WIN - 65536;
+
+  while (procIdx + SYNC_WIN <= rbTotal) {
+    const pS = goertzel(procIdx, SYNC_WIN, _cS);
+    const ms = energy(procIdx, SYNC_WIN);
+    const norm = 2 * pS / (SYNC_WIN * SYNC_WIN);
+    const ratio = ms > 1e-12 ? norm / ms : 0;
+
+    if (ratio > SYNC_THRESH) {
+      if (!syncActive) { syncActive = true; syncFrames = 0; }
+      syncFrames++;
+      syncEndAbs = procIdx + SYNC_WIN;
+    } else if (syncActive) {
+      syncActive = false;
+      if (syncFrames >= SYNC_MIN_FR) {
+        const bitSamples = Math.round(BIT_MS/1000*_sr);
+        const totalBits = PREAMBLE.length + DATA_BYTES*8;
+        const needed = syncEndAbs + Math.round(0.03*_sr) + totalBits*bitSamples + 1500;
+        pendingDecode = { syncEndAbs, needed };
+        syncFrames = 0;
+        procIdx += SYNC_WIN;
+        return;
+      }
+      syncFrames = 0;
+    }
+    procIdx += SYNC_STEP;
+  }
+}
+
+function performDecode(syncEnd) {
+  const bitSamples = Math.round(BIT_MS/1000*_sr);
+  const P = PREAMBLE.length;
+  const bitWin = Math.round(bitSamples * BIT_WIN_FRAC);
+  const bitOff = Math.floor((bitSamples - bitWin)/2);
+  const from = Math.round(ALIGN_FROM_MS/1000*_sr);
+  const to   = Math.round(ALIGN_TO_MS/1000*_sr);
+  const step = Math.max(2, Math.round(ALIGN_STEP_MS/1000*_sr));
+
+  let bestOff = 0, bestScore = -1e9;
+  for (let off = from; off <= to; off += step) {
+    const base = syncEnd + off;
+    if (base < 0 || base + P*bitSamples > rbTotal) continue;
+    let score = 0, ok = true;
+    for (let j = 0; j < P; j++) {
+      const s = base + j*bitSamples + bitOff;
+      if (s < 0 || s + bitWin > rbTotal) { ok = false; break; }
+      const { p0, p1 } = goertzelPair(s, bitWin);
+      const d = (p1-p0)/(p1+p0+1e-12);
+      score += PREAMBLE[j] ? d : -d;
+    }
+    if (!ok) continue;
+    score /= P;
+    if (score > bestScore) { bestScore = score; bestOff = off; }
+  }
+  if (bestScore < PRE_THRESH) { statFail++; updateStats(); return; }
+
+  const fine = Math.max(1, Math.round(0.1/1000*_sr));
+  let fOff = bestOff, fScore = bestScore;
+  for (let off = bestOff-step; off <= bestOff+step; off += fine) {
+    const base = syncEnd + off;
+    if (base < 0 || base + P*bitSamples > rbTotal) continue;
+    let score = 0, ok = true;
+    for (let j = 0; j < P; j++) {
+      const s = base + j*bitSamples + bitOff;
+      if (s < 0 || s + bitWin > rbTotal) { ok = false; break; }
+      const { p0, p1 } = goertzelPair(s, bitWin);
+      const d = (p1-p0)/(p1+p0+1e-12);
+      score += PREAMBLE[j] ? d : -d;
+    }
+    if (!ok) continue;
+    score /= P;
+    if (score > fScore) { fScore = score; fOff = off; }
+  }
+
+  const base = syncEnd + fOff + P*bitSamples + bitOff;
+  const bits = [];
+  for (let i = 0; i < DATA_BYTES*8; i++) {
+    const s = base + i*bitSamples;
+    if (s < 0 || s + bitWin > rbTotal) { statFail++; updateStats(); return; }
+    const { p0, p1 } = goertzelPair(s, bitWin);
+    bits.push(p1 > p0 ? 1 : 0);
+  }
+  const bytes = [];
+  for (let i = 0; i < DATA_BYTES; i++) {
+    let v = 0;
+    for (let j = 0; j < 8; j++) v = (v << 1) | bits[i*8 + j];
+    bytes.push(v);
+  }
+  const cs = (bytes[0] ^ bytes[1] ^ bytes[2] ^ CHECK_XOR) & 0xFF;
+  if (cs !== bytes[3]) { statFail++; updateStats(); return; }
+  statOk++; updateStats();
+  handlePacket(bytes, fScore);
+}
+
+/* ===================== ПЕРЕДАЧА ===================== */
+function sendOnce(bytes) {
+  return new Promise(resolve => {
+    const sr = _sr;
+    const bitSamples = Math.round(BIT_MS/1000*sr);
+    const syncSamples = Math.round(SYNC_MS/1000*sr);
+    const padSamples = Math.round(0.03*sr);
+
+    const bits = [];
+    for (const b of bytes) for (let i = 7; i >= 0; i--) bits.push((b>>i)&1);
+    const allBits = PREAMBLE.concat(bits);
+    const dataLen = allBits.length * bitSamples;
+    const total = padSamples + syncSamples + dataLen + padSamples;
+
+    const buf = audioCtx.createBuffer(1, total, sr);
+    const d = buf.getChannelData(0);
+    let phase = 0, idx = padSamples;
+    const amp = 0.92;
+
+    const incS = 2*Math.PI*F_SYNC/sr;
+    for (let i = 0; i < syncSamples; i++) { phase += incS; d[idx++] = amp*Math.sin(phase); }
+    for (const bit of allBits) {
+      const inc = 2*Math.PI*(bit ? F1 : F0)/sr;
+      for (let i = 0; i < bitSamples; i++) { phase += inc; d[idx++] = amp*Math.sin(phase); }
+    }
+    const fade = Math.round(0.006*sr);
+    for (let i = 0; i < fade; i++) {
+      const k = i/fade;
+      d[padSamples + i] *= k;
+      d[total - 1 - i] *= k;
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    let done = false;
+    const fin = () => { if (!done) { done = true; resolve(); } };
+    src.onended = fin;
+    setTimeout(fin, (total/sr)*1000 + 500);
+    try { src.start(); } catch(e) { fin(); }
+  });
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function waitFor(type, id, ms) {
+  return new Promise(resolve => {
+    const timer = setTimeout(() => {
+      if (waiter && waiter.type === type && waiter.id === id) waiter = null;
+      resolve(null);
+    }, ms);
+    waiter = { type, id, resolve, timer };
+  });
+}
+function resolveWaiter(type, id, value) {
+  if (waiter && waiter.type === type && waiter.id === id) {
+    clearTimeout(waiter.timer);
+    const r = waiter.resolve; waiter = null; r(value);
+  }
+}
+
+function nextId() { pktCounter = (pktCounter + 1) & 0xFF; return pktCounter; }
+function buildPacket(type, value, id) {
+  const b0 = ((type & 0x0F) | ((myRole & 0x0F) << 4)) & 0xFF;
+  const b1 = value & 0xFF;
+  const b2 = id & 0xFF;
+  const b3 = (b0 ^ b1 ^ b2 ^ CHECK_XOR) & 0xFF;
+  return [b0, b1, b2, b3];
+}
+
+/* ===================== ВЫСТРЕЛ ===================== */
+async function sendShotWithResult(cell) {
+  while (isTransmittingData) await sleep(20);
+  isTransmittingData = true;
+  txAbortFlag = false; btnAbort.disabled = false;
+
+  const id = nextId();
+  const bytes = buildPacket(T_SHOT, cell, id);
+  let result = null, attempt = 0;
+
+  try {
+    while (result === null && attempt < MAX_ATTEMPTS && !txAbortFlag) {
+      attempt++;
+      statTx++; updateStats();
+      setStatus('🎯 Выстрел (' + (cell+1) + ') · попытка ' + attempt + ' — ждём ответ…');
+      if (enemyBoard[cell] === 'p') enemyCells[cell].textContent = String(attempt);
+      suppressReceive = true;
+      await sendOnce(bytes);
+      suppressReceive = false;
+      // ↓↓↓ 5000 мс — чтобы точно поймать RESULT
+      result = await waitFor(T_RESULT, id, LISTEN_MS);
+    }
+
+    if (result !== null) {
+      // ACK отправим 2 раза — необязательное подтверждение
+      const ackBytes = buildPacket(T_ACK, 0, id);
+      for (let i = 0; i < ACK_REPEATS && !txAbortFlag; i++) {
+        statTx++; updateStats();
+        suppressReceive = true;
+        await sendOnce(ackBytes);
+        suppressReceive = false;
+        if (i < ACK_REPEATS-1) await sleep(ACK_GAP_MS);
+      }
+    }
+  } finally {
+    isTransmittingData = false;
+    btnAbort.disabled = true;
+  }
+  return result;
+}
+
+/* ===================== ОТПРАВКА РЕЗУЛЬТАТА — 3 РАЗА ПОДРЯД ===================== */
+async function sendResultWithAck(resultCode, shotId) {
+  while (isTransmittingData) await sleep(20);
+  isTransmittingData = true;
+  txAbortFlag = false; btnAbort.disabled = false;
+
+  const bytes = buildPacket(T_RESULT, resultCode, shotId);
+
+  try {
+    // ★ Отправляем RESULT 3 раза — P1 точно поймает хотя бы один
+    for (let i = 0; i < RESULT_REPEATS && !txAbortFlag; i++) {
+      statTx++; updateStats();
+      setStatus('📡 Отправляю «' + resultName(resultCode) + '» · ' + (i+1) + '/' + RESULT_REPEATS);
+      suppressReceive = true;
+      await sendOnce(bytes);
+      suppressReceive = false;
+      if (i < RESULT_REPEATS-1) await sleep(RESULT_GAP_MS);
+    }
+    // Короткое прослушивание ACK (для статистики, не критично)
+    await waitFor(T_ACK, shotId, 600);
+  } finally {
+    isTransmittingData = false;
+    btnAbort.disabled = true;
+  }
+}
+
+function resultName(code) {
+  return ['мимо', 'попадание', 'потоплен', 'ПОБЕДА'][code] || '?';
+}
+
+/* ===================== ПРИЁМ ПАКЕТА ===================== */
+function handlePacket(bytes, score) {
+  const type = bytes[0] & 0x0F;
+  const sender = (bytes[0] >> 4) & 0x0F;
+  const value = bytes[1];
+  const id = bytes[2];
+
+  if (sender === myRole) return;
+  if (sender !== 1 && sender !== 2) return;
+
+  if (type === T_ACK) {
+    log('📩 ACK id=' + id, 'ok');
+    resolveWaiter(T_ACK, id, 1);
+    return;
+  }
+  if (type === T_RESULT) {
+    log('📩 РЕЗУЛЬТАТ: ' + resultName(value) + ' (id=' + id + ', s=' + score.toFixed(2) + ')', 'ok');
+    resolveWaiter(T_RESULT, id, value);
+    return;
+  }
+  if (type === T_SHOT) {
+    log('📥 ВЫСТРЕЛ по ' + (value+1) + ' (id=' + id + ')', 'ok');
+    onShotReceived(value, id, sender, score);
+    return;
+  }
+  if (type === T_RESET) {
+    log('📥 Соперник начал новую игру', 'ok');
+    resetLocal();
+    beep(660, 0.1);
+    return;
+  }
+}
+
+/* ===================== ОБРАБОТКА ЧУЖОГО ВЫСТРЕЛА ===================== */
+async function onShotReceived(cell, id, sender, score) {
+  let result;
+  if (shotResults.has(cell)) {
+    result = shotResults.get(cell);
+  } else if (myBoard[cell] === 's') {
+    myBoard[cell] = 'h';
+    const ship = myShips.find(s => s.cells.includes(cell));
+    ship.hits++;
+    if (ship.hits === ship.cells.length) {
+      result = myShips.every(s => s.hits === s.cells.length) ? 3 : 2;
+    } else {
+      result = 1;
+    }
+    shotResults.set(cell, result);
+    render();
+    if (result === 3) {
+      gameOver = true; winner = sender;
+      showBanner('😔 Соперник победил');
+      beep(300, 0.4);
+    } else if (result === 2) beep(440, 0.15);
+    else beep(700, 0.08);
+  } else if (myBoard[cell] === 'e') {
+    myBoard[cell] = 'm';
+    result = 0;
+    shotResults.set(cell, result);
+    render();
+    beep(500, 0.08);
+  } else {
+    result = shotResults.get(cell) ?? 0;
+  }
+
+  // Обновляем ход ДО отправки RESULT
+  if (result === 3) return;      // игра окончена
+  if (result === 0) turn = myRole;
+
+  // Отправляем RESULT (3 раза подряд, внутри)
+  await sendResultWithAck(result, id);
+
+  updateStatusUI();
+}
+
+/* ===================== НАШ ВЫСТРЕЛ ===================== */
+async function doShoot(cell) {
+  log('👆 Клик по клетке ' + (cell+1), 'hi');
+
+  if (!myRole) { log('⚠ Сначала выберите роль', 'warn'); return; }
+  if (gameOver) { log('⚠ Игра окончена', 'warn'); return; }
+  if (isTransmittingData) { log('⚠ Уже идёт передача', 'warn'); return; }
+  if (turn !== myRole) { log('⚠ Сейчас ход соперника', 'warn'); return; }
+  if (enemyBoard[cell] !== 'u') { log('⚠ По клетке уже стреляли', 'warn'); return; }
+
+  enemyBoard[cell] = 'p';
+  enemyCells[cell].textContent = '1';
+  render();
+
+  const result = await sendShotWithResult(cell);
+
+  if (result === null) {
+    enemyBoard[cell] = 'u';
+    enemyCells[cell].textContent = '';
+    render();
+    log('✗ Соперник не ответил за ' + MAX_ATTEMPTS + ' попыток', 'bad');
+    beep(300, 0.2);
+    updateStatusUI();
+    return;
+  }
+
+  if (result === 0) {
+    enemyBoard[cell] = 'm';
+    turn = other(myRole);
+    log('   Мимо — ход переходит сопернику', 'hi');
+    beep(500, 0.08);
+  } else if (result === 1) {
+    enemyBoard[cell] = 'h';
+    log('   Попадание! Стреляйте ещё', 'ok');
+    beep(1000, 0.1);
+  } else if (result === 2) {
+    enemyBoard[cell] = 'h';
+    log('   Корабль потоплен! Стреляйте ещё', 'ok');
+    beep(800, 0.15);
+  } else if (result === 3) {
+    enemyBoard[cell] = 'h';
+    gameOver = true; winner = myRole;
+    log('   🎉 Вы победили!', 'ok');
+    showBanner('🎉 Вы победили!');
+    beep(1300, 0.4);
+  }
+  render();
+  updateStatusUI();
+}
+
+/* ===================== УПРАВЛЕНИЕ ===================== */
+$('btnNew').addEventListener('click', async () => {
+  if (!myRole) return;
+  resetLocal();
+  showBanner('');
+  log('🔄 Новая игра', 'hi');
+  const id = nextId();
+  const bytes = buildPacket(T_RESET, 0, id);
+  while (isTransmittingData) await sleep(20);
+  isTransmittingData = true;
+  try {
+    for (let i = 0; i < 3; i++) {
+      statTx++; updateStats();
+      suppressReceive = true;
+      await sendOnce(bytes);
+      suppressReceive = false;
+      if (i < 2) await sleep(150);
+    }
+  } finally {
+    isTransmittingData = false;
+  }
+  updateStatusUI();
+});
+
+btnAbort.addEventListener('click', () => {
+  if (isTransmittingData) {
+    txAbortFlag = true;
+    if (waiter) { clearTimeout(waiter.timer); const r = waiter.resolve; waiter = null; if (r) r(null); }
+    log('⛔ Отменено', 'warn');
+  }
+});
+
+function showBanner(txt) {
+  bannerEl.textContent = txt;
+  bannerEl.classList.toggle('show', !!txt);
+  if (txt) setTimeout(() => bannerEl.classList.remove('show'), 3000);
+}
+function setStatus(t) { statusEl.textContent = t; }
+
+function updateStatusUI() {
+  if (!myRole) return;
+  if (isTransmittingData) return;
+  if (gameOver) {
+    setStatus(winner === myRole ? '🎉 Вы победили!' : '😔 Соперник победил');
+  } else if (turn === myRole) {
+    setStatus('🎯 Ваш ход — кликните по полю соперника');
+  } else {
+    setStatus('⏳ Ждём выстрел соперника…');
+  }
+}
+
+/* ===================== ОТРИСОВКА ===================== */
+function render() {
+  for (let i = 0; i < N*N; i++) {
+    const a = ownCells[i], b = enemyCells[i];
+    a.className = 'bcell';
+    if (myBoard[i] === 's') a.classList.add('s');
+    else if (myBoard[i] === 'h') { a.classList.add('h'); a.textContent = '✕'; }
+    else if (myBoard[i] === 'm') { a.classList.add('m'); a.textContent = '·'; }
+    else a.textContent = '';
+
+    b.className = 'bcell';
+    const eb = enemyBoard[i];
+    if (eb === 'u') { b.classList.add('u'); b.textContent = ''; }
+    else if (eb === 'p') { b.classList.add('p'); }
+    else if (eb === 'h') { b.classList.add('h'); b.textContent = '✕'; }
+    else if (eb === 'm') { b.classList.add('m'); b.textContent = '·'; }
+  }
+  const alive = myShips.filter(s => s.hits < s.cells.length).length;
+  ownShipsEl.textContent = alive + ' / ' + myShips.length;
+  const hits = enemyBoard.filter(v => v === 'h').length;
+  enemyInfoEl.textContent = 'попаданий: ' + hits;
+  updateStatusUI();
+}
+
+/* ===================== ЗВУК ===================== */
+function beep(freq, dur) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'sine'; osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.10, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g); g.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + dur + 0.05);
+}
+
+updateStats();
+
+})();
+</script>
+</body>
+</html>
