@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Звуковые крестики-нолики v4 (ACK v2)</title>
+<style>
+  :root{
+    --bg:#0e1116; --fg:#e8eef7; --muted:#8b98ab;
+    --x:#4fc3f7; --o:#ff8a65; --card:#171c24; --line:#2a323f;
+    --ok:#5dd39e; --warn:#ffd166; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 600px at 50% -10%, #1a2230, var(--bg));
+    color:var(--fg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:14px;
+  }
+  .app{width:100%;max-width:440px}
+  h1{font-size:18px;text-align:center;margin:0 0 2px;font-weight:600}
+  .sub{text-align:center;color:var(--muted);font-size:11.5px;margin-bottom:14px}
+
+  .bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;
+       background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+  .roleTag{font-size:20px;line-height:1;font-weight:700;width:22px;text-align:center}
+  .roleTag.x{color:var(--x)} .roleTag.o{color:var(--o)}
+  .status{flex:1;font-size:13px}
+  .lvl{width:56px;height:8px;border-radius:4px;background:#0b0e13;overflow:hidden;border:1px solid var(--line)}
+  .lvl i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#5dd39e,#ffd166,#ff6b6b);transition:width .06s}
+
+  .board{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:9px;
+    margin-bottom:10px;
+  }
+  .cell{
+    aspect-ratio:1;border-radius:11px;border:1px solid var(--line);
+    background:#10151d;font-size:40px;font-weight:300;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--fg);cursor:pointer;transition:.12s;user-select:none;
+  }
+  .cell:not(:disabled):hover{background:#182130}
+  .cell:disabled{cursor:default}
+  .cell.x{color:var(--x);text-shadow:0 0 18px rgba(79,195,247,.45)}
+  .cell.o{color:var(--o);text-shadow:0 0 18px rgba(255,138,101,.45)}
+  .cell.win{background:#1d3a2e;border-color:#2f6b52}
+
+  .controls{display:flex;gap:8px;margin-bottom:10px}
+  button.btn{
+    flex:1;padding:11px;border-radius:11px;border:1px solid var(--line);
+    background:var(--card);color:var(--fg);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;
+  }
+  button.btn:hover{background:#1e2632}
+  button.btn:disabled{opacity:.4;cursor:default}
+  button.btn.primary{background:#1c3a5c;border-color:#2b5885}
+  button.btn.primary:hover{background:#22466e}
+
+  .stats{display:flex;gap:6px;font-size:10.5px;color:#66738a;margin-bottom:8px;font-family:ui-monospace,Menlo,monospace;flex-wrap:wrap}
+  .stats span{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:3px 7px}
+  .stats b{color:var(--fg);font-weight:600}
+
+  .log{
+    background:var(--card);border:1px solid var(--line);border-radius:11px;
+    padding:8px 11px;font-size:10.5px;color:var(--muted);min-height:100px;
+    line-height:1.5;font-family:ui-monospace,Menlo,monospace;
+  }
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .log .ok{color:var(--ok)}
+  .log .warn{color:var(--warn)}
+  .log .bad{color:var(--bad)}
+  .log .hi{color:#c9d3e3}
+
+  .overlay{
+    position:fixed;inset:0;background:rgba(8,10,14,.94);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .overlay.hidden{display:none}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:24px 20px;max-width:360px;width:100%;text-align:center;
+  }
+  .card h2{margin:0 0 6px;font-size:18px}
+  .card p{color:var(--muted);font-size:12.5px;margin:0 0 16px;line-height:1.5}
+  .roles{display:flex;gap:12px;justify-content:center;margin-bottom:16px}
+  .roleBtn{
+    width:88px;height:88px;border-radius:18px;border:1px solid var(--line);
+    background:#10151d;font-size:38px;cursor:pointer;transition:.15s;
+  }
+  .roleBtn.x{color:var(--x)} .roleBtn.o{color:var(--o)}
+  .roleBtn:hover{transform:translateY(-3px);background:#182130}
+  .hint{font-size:11px;color:#66738a;line-height:1.6;margin:0}
+  .err{color:var(--bad);font-size:12px;margin-top:10px;min-height:16px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>🔊 Крестики-нолики v4</h1>
+  <div class="sub">передача с подтверждением · сигнал повторяется, пока не принят</div>
+
+  <div class="bar">
+    <span class="roleTag" id="roleTag">–</span>
+    <span class="status" id="status">Ожидание…</span>
+    <div class="lvl"><i id="lvlBar"></i></div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="controls">
+    <button class="btn primary" id="btnNew">Новая игра</button>
+    <button class="btn" id="btnAbort" disabled>Отмена</button>
+  </div>
+
+  <div class="stats">
+    <span>TX: <b id="statTx">0</b></span>
+    <span>ACK: <b id="statAck">0</b></span>
+    <span>SYNC: <b id="statSync">0</b></span>
+    <span>OK: <b id="statOk">0</b></span>
+    <span>BAD: <b id="statFail">0</b></span>
+  </div>
+
+  <div class="log" id="log"></div>
+</div>
+
+<div class="overlay" id="startScreen">
+  <div class="card">
+    <h2>Выберите роль</h2>
+    <p>Игрок <b style="color:var(--x)">✕</b> ходит первым.<br>На втором устройстве выберите другую роль.</p>
+    <div class="roles">
+      <button class="roleBtn x" id="roleX">✕</button>
+      <button class="roleBtn o" id="roleO">◯</button>
+    </div>
+    <p class="hint">
+      Разрешите доступ к микрофону.<br>
+      Поставьте устройства рядом (10–30 см),<br>
+      громкость на максимум, уберите шум.
+    </p>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   ПРОТОКОЛ
+   ============================================================ */
+const F0       = 900;
+const F1       = 1800;
+const F_SYNC   = 2700;
+const BIT_MS   = 20;
+const SYNC_MS  = 250;
+const PREAMBLE = [1,0,1,0,1,0,1,0];
+
+const DATA_BYTES = 4;
+const CHECK_XOR = 0x5A;
+
+const T_MOVE  = 1;
+const T_RESET = 2;
+const T_ACK   = 3;
+
+// Тайминги
+const LISTEN_MS     = 3000;   // сколько ждём ACK после передачи
+const MAX_ATTEMPTS  = 200;
+const RESET_REPEATS = 3;
+const ACK_DEDUP_MS  = 2500;   // не переACK'ать тот же id чаще чем раз в 2.5с
+
+/* ============================================================
+   ПРИЁМ
+   ============================================================ */
+const SYNC_WIN     = 800;
+const SYNC_STEP    = 200;
+const SYNC_THRESH  = 0.14;
+const SYNC_MIN_FR  = 8;
+
+const ALIGN_FROM_MS = -22;
+const ALIGN_TO_MS   =  14;
+const ALIGN_STEP_MS = 0.5;
+
+const BIT_WIN_FRAC  = 0.75;
+const PRE_THRESH    = 0.30;
+
+/* ============================================================
+   СОСТОЯНИЕ
+   ============================================================ */
+let audioCtx = null, micStream = null, scriptNode = null;
+let _sr = 48000, _c0 = 0, _c1 = 0, _cS = 0;
+
+let myRole = 0;
+
+// Отдельные флаги — это ключевое исправление
+let isTransmittingData = false;   // идёт исходящая передача данных
+let isSendingAck       = false;   // идёт отправка ACK
+
+let suppressReceive = false;
+
+const RB_BITS = 18, RB_SIZE = 1 << RB_BITS, RB_MASK = RB_SIZE - 1;
+const rb = new Float32Array(RB_SIZE);
+let rbTotal = 0;
+let procIdx = 0;
+
+let dcX = 0, dcY = 0;
+
+let syncActive = false, syncFrames = 0, syncEndAbs = 0;
+let pendingDecode = null;
+
+// ACK
+let ackWaiter = null;
+let txAbortFlag = false;
+const ackedIds = new Map();     // id -> timestamp последнего ACK
+
+let pktCounter = Math.floor(Math.random() * 200);
+const lastSeenId = { 1: -1, 2: -1 };
+
+let statTx = 0, statAck = 0, statSync = 0, statOk = 0, statFail = 0;
+
+// Игра
+const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let board = new Array(9).fill(0);
+let turn = 1, gameOver = false, winner = 0, winLine = null;
+
+/* ============================================================
+   DOM
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const boardEl   = $('board');
+const statusEl  = $('status');
+const roleTagEl = $('roleTag');
+const logEl     = $('log');
+const lvlBar    = $('lvlBar');
+const startScr  = $('startScreen');
+const errEl     = $('err');
+const btnAbort  = $('btnAbort');
+const cells = [];
+
+for (let i = 0; i < 9; i++) {
+  const b = document.createElement('button');
+  b.className = 'cell';
+  b.dataset.i = i;
+  b.addEventListener('click', () => localMove(i));
+  boardEl.appendChild(b);
+  cells.push(b);
+}
+
+/* ============================================================
+   ЛОГ
+   ============================================================ */
+const logLines = [];
+function log(msg, cls) {
+  const t = new Date().toLocaleTimeString('ru-RU', {hour12:false});
+  logLines.unshift({t, msg, cls: cls || ''});
+  if (logLines.length > 8) logLines.pop();
+  logEl.innerHTML = logLines.map(l =>
+    `<div class="${l.cls}">[${l.t}] ${l.msg}</div>`).join('');
+}
+
+function updateStats() {
+  $('statTx').textContent = statTx;
+  $('statAck').textContent = statAck;
+  $('statSync').textContent = statSync;
+  $('statOk').textContent = statOk;
+  $('statFail').textContent = statFail;
+}
+
+/* ============================================================
+   ИНИЦИАЛИЗАЦИЯ
+   ============================================================ */
+async function startGame(role) {
+  errEl.textContent = '';
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.resume();
+
+    _sr = audioCtx.sampleRate;
+    _c0 = 2 * Math.cos(2 * Math.PI * F0 / _sr);
+    _c1 = 2 * Math.cos(2 * Math.PI * F1 / _sr);
+    _cS = 2 * Math.cos(2 * Math.PI * F_SYNC / _sr);
+
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: 1
+      }
+    });
+
+    const src = audioCtx.createMediaStreamSource(micStream);
+    scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
+    scriptNode.onaudioprocess = onAudioProcess;
+
+    const mute = audioCtx.createGain();
+    mute.gain.value = 0;
+
+    src.connect(scriptNode);
+    scriptNode.connect(mute);
+    mute.connect(audioCtx.destination);
+
+    myRole = role;
+    roleTagEl.textContent = role === 1 ? '✕' : '◯';
+    roleTagEl.className = 'roleTag ' + (role === 1 ? 'x' : 'o');
+
+    startScr.classList.add('hidden');
+    log('Роль ' + (role === 1 ? '✕' : '◯') + ', Fs=' + _sr + ' Гц', 'ok');
+    render();
+    beep(880, 0.09);
+  } catch (e) {
+    errEl.textContent = 'Ошибка: ' + (e && e.message ? e.message : e);
+    console.error(e);
+  }
+}
+$('roleX').addEventListener('click', () => startGame(1));
+$('roleO').addEventListener('click', () => startGame(2));
+
+/* ============================================================
+   ПРИЁМ
+   ============================================================ */
+function onAudioProcess(e) {
+  const inp = e.inputBuffer.getChannelData(0);
+  for (let i = 0; i < inp.length; i++) {
+    const x = inp[i];
+    const y = x - dcX + 0.997 * dcY;
+    dcX = x; dcY = y;
+    rb[rbTotal & RB_MASK] = y;
+    rbTotal++;
+  }
+  let sum = 0;
+  for (let i = 0; i < inp.length; i += 4) sum += inp[i] * inp[i];
+  const rms = Math.sqrt(sum / (inp.length / 4));
+  lvlBar.style.width = Math.min(100, rms * 900).toFixed(0) + '%';
+
+  processAudio();
+}
+
+function goertzel(start, N, coef) {
+  let s1 = 0, s2 = 0;
+  for (let i = 0; i < N; i++) {
+    const x = rb[(start + i) & RB_MASK];
+    const s0 = x + coef * s1 - s2;
+    s2 = s1; s1 = s0;
+  }
+  return s1 * s1 + s2 * s2 - coef * s1 * s2;
+}
+
+function goertzelPair(start, N) {
+  let a1 = 0, a2 = 0, b1 = 0, b2 = 0;
+  const c0 = _c0, c1 = _c1;
+  for (let i = 0; i < N; i++) {
+    const x = rb[(start + i) & RB_MASK];
+    const a0 = x + c0 * a1 - a2; a2 = a1; a1 = a0;
+    const b0 = x + c1 * b1 - b2; b2 = b1; b1 = b0;
+  }
+  return {
+    p0: a1 * a1 + a2 * a2 - c0 * a1 * a2,
+    p1: b1 * b1 + b2 * b2 - c1 * b1 * b2
+  };
+}
+
+function energy(start, N) {
+  let s = 0;
+  for (let i = 0; i < N; i++) {
+    const x = rb[(start + i) & RB_MASK];
+    s += x * x;
+  }
+  return s / N;
+}
+
+function processAudio() {
+  if (rbTotal < SYNC_WIN) return;
+
+  if (pendingDecode) {
+    if (rbTotal >= pendingDecode.needed) {
+      const p = pendingDecode;
+      pendingDecode = null;
+      try { performDecode(p.syncEndAbs); } catch (err) { console.error(err); }
+      procIdx = Math.max(procIdx, rbTotal - SYNC_WIN);
+    }
+    return;
+  }
+
+  if (suppressReceive) {
+    procIdx = Math.max(procIdx, rbTotal - SYNC_WIN);
+    return;
+  }
+
+  if (procIdx < rbTotal - SYNC_WIN - 65536) {
+    procIdx = rbTotal - SYNC_WIN - 65536;
+  }
+
+  while (procIdx + SYNC_WIN <= rbTotal) {
+    const pS = goertzel(procIdx, SYNC_WIN, _cS);
+    const ms = energy(procIdx, SYNC_WIN);
+    const normSync = 2 * pS / (SYNC_WIN * SYNC_WIN);
+    const ratio = ms > 1e-12 ? normSync / ms : 0;
+
+    if (ratio > SYNC_THRESH) {
+      if (!syncActive) { syncActive = true; syncFrames = 0; }
+      syncFrames++;
+      syncEndAbs = procIdx + SYNC_WIN;
+    } else if (syncActive) {
+      syncActive = false;
+      if (syncFrames >= SYNC_MIN_FR) {
+        const bitSamples = Math.round(BIT_MS / 1000 * _sr);
+        const totalBits = PREAMBLE.length + DATA_BYTES * 8;
+        const needed = syncEndAbs
+                     + Math.round(0.03 * _sr)
+                     + totalBits * bitSamples
+                     + 1500;
+        pendingDecode = { syncEndAbs, needed };
+        statSync++; updateStats();
+        syncFrames = 0;
+        procIdx += SYNC_WIN;
+        return;
+      }
+      syncFrames = 0;
+    }
+    procIdx += SYNC_STEP;
+  }
+}
+
+function performDecode(syncEnd) {
+  const bitSamples = Math.round(BIT_MS / 1000 * _sr);
+  const P = PREAMBLE.length;
+  const bitWin = Math.round(bitSamples * BIT_WIN_FRAC);
+  const bitOff = Math.floor((bitSamples - bitWin) / 2);
+
+  const from = Math.round(ALIGN_FROM_MS / 1000 * _sr);
+  const to   = Math.round(ALIGN_TO_MS   / 1000 * _sr);
+  const step = Math.max(2, Math.round(ALIGN_STEP_MS / 1000 * _sr));
+
+  let bestOff = 0, bestScore = -1e9;
+
+  for (let off = from; off <= to; off += step) {
+    const base = syncEnd + off;
+    if (base < 0 || base + P * bitSamples > rbTotal) continue;
+    let score = 0, valid = true;
+    for (let j = 0; j < P; j++) {
+      const s = base + j * bitSamples + bitOff;
+      if (s < 0 || s + bitWin > rbTotal) { valid = false; break; }
+      const { p0, p1 } = goertzelPair(s, bitWin);
+      const d = (p1 - p0) / (p1 + p0 + 1e-12);
+      score += PREAMBLE[j] ? d : -d;
+    }
+    if (!valid) continue;
+    score /= P;
+    if (score > bestScore) { bestScore = score; bestOff = off; }
+  }
+
+  if (bestScore < PRE_THRESH) {
+    statFail++; updateStats();
+    return;
+  }
+
+  const fineStep = Math.max(1, Math.round(0.1 / 1000 * _sr));
+  let fBestOff = bestOff, fBestScore = bestScore;
+  for (let off = bestOff - step; off <= bestOff + step; off += fineStep) {
+    const base = syncEnd + off;
+    if (base < 0 || base + P * bitSamples > rbTotal) continue;
+    let score = 0, valid = true;
+    for (let j = 0; j < P; j++) {
+      const s = base + j * bitSamples + bitOff;
+      if (s < 0 || s + bitWin > rbTotal) { valid = false; break; }
+      const { p0, p1 } = goertzelPair(s, bitWin);
+      const d = (p1 - p0) / (p1 + p0 + 1e-12);
+      score += PREAMBLE[j] ? d : -d;
+    }
+    if (!valid) continue;
+    score /= P;
+    if (score > fBestScore) { fBestScore = score; fBestOff = off; }
+  }
+
+  const base = syncEnd + fBestOff + P * bitSamples + bitOff;
+  const bits = [];
+  for (let i = 0; i < DATA_BYTES * 8; i++) {
+    const s = base + i * bitSamples;
+    if (s < 0 || s + bitWin > rbTotal) { statFail++; updateStats(); return; }
+    const { p0, p1 } = goertzelPair(s, bitWin);
+    bits.push(p1 > p0 ? 1 : 0);
+  }
+  const bytes = [];
+  for (let i = 0; i < DATA_BYTES; i++) {
+    let v = 0;
+    for (let j = 0; j < 8; j++) v = (v << 1) | bits[i * 8 + j];
+    bytes.push(v);
+  }
+  const cs = (bytes[0] ^ bytes[1] ^ bytes[2] ^ CHECK_XOR) & 0xFF;
+  if (cs !== bytes[3]) {
+    statFail++; updateStats();
+    return;
+  }
+  statOk++; updateStats();
+  handlePacket(bytes, fBestScore);
+}
+
+/* ============================================================
+   ПЕРЕДАЧА
+   ============================================================ */
+function sendOnce(bytes) {
+  return new Promise(resolve => {
+    const sr = _sr;
+    const bitSamples  = Math.round(BIT_MS / 1000 * sr);
+    const syncSamples = Math.round(SYNC_MS / 1000 * sr);
+    const padSamples  = Math.round(0.03 * sr);
+
+    const bits = [];
+    for (const byte of bytes)
+      for (let i = 7; i >= 0; i--) bits.push((byte >> i) & 1);
+    const allBits = PREAMBLE.concat(bits);
+    const dataLen = allBits.length * bitSamples;
+    const total   = padSamples + syncSamples + dataLen + padSamples;
+
+    const buf = audioCtx.createBuffer(1, total, sr);
+    const d = buf.getChannelData(0);
+    let phase = 0;
+    const amp = 0.92;
+    let idx = padSamples;
+
+    const incS = 2 * Math.PI * F_SYNC / sr;
+    for (let i = 0; i < syncSamples; i++) {
+      phase += incS;
+      d[idx++] = amp * Math.sin(phase);
+    }
+    for (const bit of allBits) {
+      const inc = 2 * Math.PI * (bit ? F1 : F0) / sr;
+      for (let i = 0; i < bitSamples; i++) {
+        phase += inc;
+        d[idx++] = amp * Math.sin(phase);
+      }
+    }
+    const fade = Math.round(0.006 * sr);
+    for (let i = 0; i < fade; i++) {
+      const k = i / fade;
+      d[padSamples + i] *= k;
+      d[total - 1 - i] *= k;
+    }
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+
+    let resolved = false;
+    const finish = () => { if (!resolved) { resolved = true; resolve(); } };
+
+    src.onended = finish;
+    const safety = setTimeout(finish, (total / sr) * 1000 + 500);
+
+    try { src.start(); }
+    catch (e) { clearTimeout(safety); finish(); }
+  });
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* --- Ожидание ACK с нужным id --- */
+function waitForAck(id, ms) {
+  return new Promise(resolve => {
+    const timer = setTimeout(() => {
+      if (ackWaiter && ackWaiter.id === id) ackWaiter = null;
+      resolve(false);
+    }, ms);
+    ackWaiter = { id, resolve, timer };
+  });
+}
+
+function resolveAck(id) {
+  if (ackWaiter && ackWaiter.id === id) {
+    clearTimeout(ackWaiter.timer);
+    const r = ackWaiter.resolve;
+    ackWaiter = null;
+    r(true);
+  }
+}
+
+/* ============================================================
+   ★ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: ACK не блокируется передачей данных
+   ============================================================ */
+async function sendAck(id) {
+  const now = Date.now();
+
+  // Дедупликация: если уже ACK'али этот id недавно — пропускаем
+  const last = ackedIds.get(id);
+  if (last !== undefined && (now - last) < ACK_DEDUP_MS) {
+    return;
+  }
+  ackedIds.set(id, now);
+
+  // Если другой ACK сейчас отправляется — не накладываемся
+  if (isSendingAck) return;
+
+  // Если идёт НАША передача данных — подождём её коротко (макс 250 мс).
+  // Но не блокируемся надолго, иначе потеряем окно прослушивания соперника.
+  const start = Date.now();
+  while (isTransmittingData && Date.now() - start < 250) {
+    await sleep(15);
+  }
+
+  if (!audioCtx) return;
+
+  isSendingAck = true;
+  try {
+    await sendOnce(buildPacket(T_ACK, 0, id));
+  } catch (e) {
+    console.error('sendAck error', e);
+  }
+  isSendingAck = false;
+  statTx++; updateStats();
+}
+
+/* ============================================================
+   ОСНОВНОЙ ЦИКЛ: передача данных с ожиданием ACK
+   ============================================================ */
+async function transmitWithAck(type, value) {
+  if (isTransmittingData || !audioCtx) return;
+  isTransmittingData = true;
+  txAbortFlag = false;
+  btnAbort.disabled = false;
+
+  const id = (pktCounter = (pktCounter + 1) & 0xFF);
+  const bytes = buildPacket(type, value, id);
+
+  log('📤 Отправка id=' + id + '…', 'hi');
+  let attempt = 0;
+  let gotAck = false;
+
+  while (attempt < MAX_ATTEMPTS && !gotAck && !txAbortFlag) {
+    attempt++;
+    statTx++; updateStats();
+    setStatus('📡 Попытка ' + attempt + ' — ждём подтверждения…');
+
+    // Передаём пакет
+    suppressReceive = true;
+    await sendOnce(bytes);
+    suppressReceive = false;
+    // НЕ сбрасываем procIdx — пусть приём обработает то, что успело накопиться
+
+    // Слушаем ACK
+    gotAck = await waitForAck(id, LISTEN_MS);
+
+    if (gotAck) {
+      statAck++; updateStats();
+      log('✓ ACK получен на попытке ' + attempt, 'ok');
+      beep(1200, 0.05);
+    }
+  }
+
+  isTransmittingData = false;
+  btnAbort.disabled = true;
+
+  if (!gotAck && !txAbortFlag) {
+    log('✗ Соперник не подтвердил приём', 'bad');
+  }
+  updateStatusUI();
+}
+
+/* --- RESET: без ACK, просто несколько повторов --- */
+async function transmitReset() {
+  if (isTransmittingData || !audioCtx) return;
+  isTransmittingData = true;
+  txAbortFlag = false;
+  btnAbort.disabled = false;
+  const id = (pktCounter = (pktCounter + 1) & 0xFF);
+  const bytes = buildPacket(T_RESET, 0, id);
+  log('📤 Reset id=' + id);
+  for (let i = 0; i < RESET_REPEATS && !txAbortFlag; i++) {
+    statTx++; updateStats();
+    suppressReceive = true;
+    await sendOnce(bytes);
+    suppressReceive = false;
+    if (i < RESET_REPEATS - 1) await sleep(180);
+  }
+  isTransmittingData = false;
+  btnAbort.disabled = true;
+  updateStatusUI();
+}
+
+/* ============================================================
+   ПАКЕТЫ
+   ============================================================ */
+function buildPacket(type, value, id) {
+  const b0 = ((type & 0x0F) | ((myRole & 0x0F) << 4)) & 0xFF;
+  const b1 = value & 0xFF;
+  const b2 = id & 0xFF;
+  const b3 = (b0 ^ b1 ^ b2 ^ CHECK_XOR) & 0xFF;
+  return [b0, b1, b2, b3];
+}
+
+function handlePacket(bytes, score) {
+  const type   = bytes[0] & 0x0F;
+  const sender = (bytes[0] >> 4) & 0x0F;
+  const value  = bytes[1];
+  const id     = bytes[2];
+
+  // === ACK ===
+  if (type === T_ACK) {
+    if (sender !== myRole && sender >= 1 && sender <= 2) {
+      log('📩 ACK id=' + id + ' (s=' + score.toFixed(2) + ')', 'ok');
+      resolveAck(id);
+    }
+    return;
+  }
+
+  if (sender === myRole) return;
+  if (sender !== 1 && sender !== 2) return;
+
+  // === MOVE ===
+  if (type === T_MOVE) {
+    if (lastSeenId[sender] === id) {
+      // Дубликат — перепосылаем ACK (соперник, возможно, не получил)
+      sendAck(id);
+      return;
+    }
+    lastSeenId[sender] = id;
+    log('📥 MOVE id=' + id + ' cell=' + (value + 1) + ' s=' + score.toFixed(2), 'ok');
+
+    if (!gameOver && turn === sender && value <= 8 && board[value] === 0) {
+      board[value] = sender;
+      turn = sender === 1 ? 2 : 1;
+      log('   ✓ ход применён, теперь ход ' + (turn === 1 ? '✕' : '◯'), 'ok');
+      beep(1000, 0.07);
+      render();
+      checkEnd();
+    } else {
+      log('   ⚠ ход не применён (устарел/повтор)', 'warn');
+    }
+    sendAck(id);
+    return;
+  }
+
+  // === RESET ===
+  if (type === T_RESET) {
+    if (lastSeenId[sender] === id) return;
+    lastSeenId[sender] = id;
+    resetLocal();
+    log('📥 Соперник начал новую игру', 'ok');
+    beep(660, 0.1);
+    return;
+  }
+}
+
+/* ============================================================
+   ИГРА
+   ============================================================ */
+function localMove(cell) {
+  if (!myRole || gameOver || isTransmittingData) return;
+  if (turn !== myRole) return;
+  if (board[cell] !== 0) return;
+
+  board[cell] = myRole;
+  turn = (myRole === 1) ? 2 : 1;
+  render();
+
+  if (!checkEnd()) {
+    transmitWithAck(T_MOVE, cell);
+  }
+}
+
+function resetLocal() {
+  board = new Array(9).fill(0);
+  turn = 1;
+  gameOver = false;
+  winner = 0;
+  winLine = null;
+  render();
+}
+
+$('btnNew').addEventListener('click', () => {
+  if (!myRole || isTransmittingData) return;
+  resetLocal();
+  log('🔄 Новая игра', 'hi');
+  transmitReset();
+});
+
+btnAbort.addEventListener('click', () => {
+  if (isTransmittingData) {
+    txAbortFlag = true;
+    if (ackWaiter) {
+      clearTimeout(ackWaiter.timer);
+      const r = ackWaiter.resolve;
+      ackWaiter = null;
+      if (r) r(false);
+    }
+    log('⛔ Передача отменена', 'warn');
+  }
+});
+
+function checkEnd() {
+  for (const L of LINES) {
+    const [a, b, c] = L;
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      gameOver = true;
+      winner = board[a];
+      winLine = L;
+      render();
+      beep(winner === myRole ? 1300 : 380, 0.3);
+      return true;
+    }
+  }
+  if (board.every(v => v !== 0)) {
+    gameOver = true;
+    winner = 0;
+    render();
+    beep(600, 0.25);
+    return true;
+  }
+  return false;
+}
+
+function setStatus(txt) { statusEl.textContent = txt; }
+
+function updateStatusUI() {
+  if (!myRole) { setStatus('Ожидание…'); return; }
+  if (isTransmittingData) return;
+  if (gameOver) {
+    if (winner === 0) setStatus('Ничья 🤝');
+    else if (winner === myRole) setStatus('Вы победили! 🎉');
+    else setStatus('Соперник победил 😔');
+  } else if (turn === myRole) {
+    setStatus('Ваш ход');
+  } else {
+    setStatus('Ход соперника…');
+  }
+}
+
+function render() {
+  for (let i = 0; i < 9; i++) {
+    const el = cells[i];
+    el.textContent = board[i] === 1 ? '✕' : board[i] === 2 ? '◯' : '';
+    el.className = 'cell'
+      + (board[i] === 1 ? ' x' : board[i] === 2 ? ' o' : '')
+      + (winLine && winLine.includes(i) ? ' win' : '');
+    el.disabled = gameOver || board[i] !== 0 || turn !== myRole || !myRole || isTransmittingData;
+  }
+  updateStatusUI();
+}
+
+/* ============================================================
+   СЛУЖЕБНЫЙ ЗВУК
+   ============================================================ */
+function beep(freq, dur) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.10, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g); g.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + dur + 0.05);
+}
+
+updateStats();
+
+})();
+</script>
+</body>
+</html>
