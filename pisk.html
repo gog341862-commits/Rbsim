@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Звуковые крестики-нолики</title>
+<style>
+  :root{
+    --bg:#0e1116; --fg:#e8eef7; --muted:#8b98ab;
+    --x:#4fc3f7; --o:#ff8a65; --card:#171c24; --line:#2a323f; --ok:#5dd39e;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 600px at 50% -10%, #1a2230, var(--bg));
+    color:var(--fg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  }
+  .app{width:100%;max-width:440px}
+  h1{font-size:19px;text-align:center;margin:0 0 2px;font-weight:600}
+  .sub{text-align:center;color:var(--muted);font-size:12px;margin-bottom:16px}
+
+  .bar{display:flex;gap:8px;align-items:center;margin-bottom:14px;
+       background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+  .roleTag{font-size:22px;line-height:1;font-weight:700}
+  .roleTag.x{color:var(--x)} .roleTag.o{color:var(--o)}
+  .status{flex:1;font-size:14px;color:var(--fg)}
+  .lvl{width:60px;height:8px;border-radius:4px;background:#0b0e13;overflow:hidden;border:1px solid var(--line)}
+  .lvl i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#5dd39e,#ffd166,#ff6b6b);transition:width .08s}
+
+  .board{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+    background:var(--card);border:1px solid var(--line);border-radius:18px;padding:10px;
+    margin-bottom:14px;
+  }
+  .cell{
+    aspect-ratio:1;border-radius:12px;border:1px solid var(--line);
+    background:#10151d;font-size:44px;font-weight:300;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--fg);cursor:pointer;transition:.12s;user-select:none;
+    font-family:system-ui,sans-serif;
+  }
+  .cell:not(:disabled):hover{background:#182130;transform:translateY(-1px)}
+  .cell:disabled{cursor:default}
+  .cell.x{color:var(--x);text-shadow:0 0 18px rgba(79,195,247,.45)}
+  .cell.o{color:var(--o);text-shadow:0 0 18px rgba(255,138,101,.45)}
+  .cell.win{background:#1d3a2e;border-color:#2f6b52}
+
+  .controls{display:flex;gap:10px;margin-bottom:12px}
+  button.btn{
+    flex:1;padding:12px;border-radius:12px;border:1px solid var(--line);
+    background:var(--card);color:var(--fg);font-size:14px;font-weight:500;cursor:pointer;transition:.15s;
+  }
+  button.btn:hover{background:#1e2632}
+  button.btn:disabled{opacity:.4;cursor:default}
+  button.btn.primary{background:#1c3a5c;border-color:#2b5885}
+  button.btn.primary:hover{background:#22466e}
+
+  .log{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:10px 12px;font-size:12px;color:var(--muted);min-height:74px;
+    line-height:1.55;font-family:ui-monospace,Menlo,monospace;
+  }
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .overlay{
+    position:fixed;inset:0;background:rgba(8,10,14,.92);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .overlay.hidden{display:none}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:20px;
+    padding:26px 22px;max-width:360px;width:100%;text-align:center;
+  }
+  .card h2{margin:0 0 6px;font-size:19px}
+  .card p{color:var(--muted);font-size:13px;margin:0 0 18px;line-height:1.5}
+  .roles{display:flex;gap:14px;justify-content:center;margin-bottom:18px}
+  .roleBtn{
+    width:92px;height:92px;border-radius:20px;border:1px solid var(--line);
+    background:#10151d;font-size:40px;cursor:pointer;transition:.15s;
+  }
+  .roleBtn.x{color:var(--x)} .roleBtn.o{color:var(--o)}
+  .roleBtn:hover{transform:translateY(-3px);background:#182130}
+  .hint{font-size:11.5px;color:#66738a;line-height:1.6;margin:0}
+  .err{color:#ff7b72;font-size:12px;margin-top:10px;min-height:16px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>🔊 Звуковые крестики-нолики</h1>
+  <div class="sub">данные передаются через динамик и микрофон</div>
+
+  <div class="bar">
+    <span class="roleTag" id="roleTag">–</span>
+    <span class="status" id="status">Ожидание…</span>
+    <div class="lvl"><i id="lvlBar"></i></div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="controls">
+    <button class="btn primary" id="btnNew">Новая игра</button>
+    <button class="btn" id="btnTest">Тест сигнала</button>
+  </div>
+
+  <div class="log" id="log"></div>
+</div>
+
+<div class="overlay" id="startScreen">
+  <div class="card">
+    <h2>Выберите роль</h2>
+    <p>Игрок <b style="color:var(--x)">✕</b> ходит первым.<br>На втором устройстве выберите другую роль.</p>
+    <div class="roles">
+      <button class="roleBtn x" id="roleX">✕</button>
+      <button class="roleBtn o" id="roleO">◯</button>
+    </div>
+    <p class="hint">
+      Разрешите доступ к микрофону.<br>
+      Поставьте устройства рядом (10–50 см),<br>
+      сделайте громкость погромче и уберите лишний шум.
+    </p>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   ПАРАМЕТРЫ МОДУЛЯЦИИ
+   ============================================================ */
+const F0       = 1600;   // Гц — бит "0"
+const F1       = 2600;   // Гц — бит "1"
+const F_SYNC   = 3600;   // Гц — синхротон
+const BIT_MS   = 25;     // длительность бита, мс
+const SYNC_MS  = 300;    // длительность синхротона, мс
+const PREAMBLE = [1,0,1,0,1,0,1,0];
+const DATA_BYTES = 4;    // type, value, sender, checksum
+
+const T_MOVE  = 1;
+const T_RESET = 2;
+
+/* ============================================================
+   СОСТОЯНИЕ
+   ============================================================ */
+let audioCtx = null, micStream = null, scriptNode = null;
+let _sr = 48000, _c0 = 0, _c1 = 0, _cS = 0;
+
+let myRole = 0;                 // 1 = X, 2 = O
+let isTransmitting = false;
+let suppressReceive = false;
+
+// кольцевой буфер сэмплов
+const RB_BITS = 17, RB_SIZE = 1 << RB_BITS, RB_MASK = RB_SIZE - 1;
+const rb = new Float32Array(RB_SIZE);
+let rbTotal = 0;      // всего записано сэмплов (абсолютный индекс)
+let procIdx = 0;      // докуда обработали
+
+// детектор синхротона
+let syncActive = false, syncFrames = 0, syncEndAbs = 0;
+let pendingDecode = null;
+
+// игра
+const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let board = new Array(9).fill(0);
+let turn = 1, gameOver = false, winner = 0, winLine = null;
+
+/* ============================================================
+   DOM
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const boardEl   = $('board');
+const statusEl  = $('status');
+const roleTagEl = $('roleTag');
+const logEl     = $('log');
+const lvlBar    = $('lvlBar');
+const startScr  = $('startScreen');
+const errEl     = $('err');
+const cells = [];
+
+for (let i = 0; i < 9; i++) {
+  const b = document.createElement('button');
+  b.className = 'cell';
+  b.dataset.i = i;
+  b.addEventListener('click', () => localMove(i));
+  boardEl.appendChild(b);
+  cells.push(b);
+}
+
+/* ============================================================
+   ЛОГ
+   ============================================================ */
+const logLines = [];
+function log(msg) {
+  const t = new Date().toLocaleTimeString('ru-RU', {hour12:false});
+  logLines.unshift(`[${t}] ${msg}`);
+  if (logLines.length > 5) logLines.pop();
+  logEl.innerHTML = logLines.map(l => `<div>${l}</div>`).join('');
+}
+
+/* ============================================================
+   АУДИО: ИНИЦИАЛИЗАЦИЯ
+   ============================================================ */
+async function startGame(role) {
+  errEl.textContent = '';
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.resume();
+
+    _sr = audioCtx.sampleRate;
+    _c0 = 2 * Math.cos(2 * Math.PI * F0 / _sr);
+    _c1 = 2 * Math.cos(2 * Math.PI * F1 / _sr);
+    _cS = 2 * Math.cos(2 * Math.PI * F_SYNC / _sr);
+
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: 1
+      }
+    });
+
+    const src = audioCtx.createMediaStreamSource(micStream);
+    scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
+    scriptNode.onaudioprocess = onAudioProcess;
+
+    const mute = audioCtx.createGain();
+    mute.gain.value = 0;
+
+    src.connect(scriptNode);
+    scriptNode.connect(mute);
+    mute.connect(audioCtx.destination);
+
+    myRole = role;
+    roleTagEl.textContent = role === 1 ? '✕' : '◯';
+    roleTagEl.className = 'roleTag ' + (role === 1 ? 'x' : 'o');
+
+    startScr.classList.add('hidden');
+    log('Роль: ' + (role === 1 ? '✕ (крестики)' : '◯ (нолики)'));
+    log('Микрофон активен. Частота дискретизации: ' + _sr + ' Гц');
+    render();
+    beep(880, 0.09);
+  } catch (e) {
+    errEl.textContent = 'Ошибка: ' + (e && e.message ? e.message : e);
+    console.error(e);
+  }
+}
+
+$('roleX').addEventListener('click', () => startGame(1));
+$('roleO').addEventListener('click', () => startGame(2));
+
+/* ============================================================
+   АУДИО: ПРИЁМ
+   ============================================================ */
+function onAudioProcess(e) {
+  const inp = e.inputBuffer.getChannelData(0);
+  for (let i = 0; i < inp.length; i++) {
+    rb[rbTotal & RB_MASK] = inp[i];
+    rbTotal++;
+  }
+
+  // индикатор уровня
+  let sum = 0;
+  for (let i = 0; i < inp.length; i += 4) sum += inp[i] * inp[i];
+  const rms = Math.sqrt(sum / (inp.length / 4));
+  const pct = Math.min(100, rms * 900);
+  lvlBar.style.width = pct.toFixed(0) + '%';
+
+  processAudio();
+}
+
+/* --- фильтр Гёрцеля для пары битовых частот --- */
+function goertzelPair(start, N) {
+  let a1 = 0, a2 = 0, b1 = 0, b2 = 0;
+  const c0 = _c0, c1 = _c1;
+  for (let i = 0; i < N; i++) {
+    const x = rb[(start + i) & RB_MASK];
+    const a0 = x + c0 * a1 - a2; a2 = a1; a1 = a0;
+    const b0 = x + c1 * b1 - b2; b2 = b1; b1 = b0;
+  }
+  return {
+    p0: a1 * a1 + a2 * a2 - c0 * a1 * a2,
+    p1: b1 * b1 + b2 * b2 - c1 * b1 * b2
+  };
+}
+
+/* --- анализ окна: энергия синхротона + общая --- */
+function analyze(start, N) {
+  let sumSq = 0;
+  let s1 = 0, s2 = 0;
+  const cS = _cS;
+  for (let i = 0; i < N; i++) {
+    const x = rb[(start + i) & RB_MASK];
+    sumSq += x * x;
+    const s0 = x + cS * s1 - s2; s2 = s1; s1 = s0;
+  }
+  const pS = s1 * s1 + s2 * s2 - cS * s1 * s2;
+  return { ms: sumSq / N, pS };
+}
+
+/* --- главный цикл обработки --- */
+function processAudio() {
+  const N = 512;
+  const STEP = 256;
+
+  if (rbTotal < N) return;
+
+  // ждём накопления данных для декодирования
+  if (pendingDecode) {
+    if (rbTotal >= pendingDecode.needed) {
+      const p = pendingDecode;
+      pendingDecode = null;
+      try { performDecode(p.syncEndAbs); }
+      catch (err) { console.error(err); }
+      procIdx = Math.max(0, rbTotal - N);
+    }
+    return;
+  }
+
+  if (suppressReceive) {
+    procIdx = Math.max(procIdx, rbTotal - N);
+    return;
+  }
+
+  // не отстаём слишком сильно
+  if (procIdx < rbTotal - N - 8192) procIdx = Math.max(0, rbTotal - N - 8192);
+
+  while (procIdx + N <= rbTotal) {
+    const start = procIdx;
+    const end = start + N;
+    const r = analyze(start, N);
+    const ratio = r.ms > 1e-9 ? (2 * r.pS / (N * N)) / r.ms : 0;
+
+    if (ratio > 0.35) {
+      syncActive = true;
+      syncFrames++;
+      syncEndAbs = end;
+    } else if (syncActive) {
+      syncActive = false;
+      if (syncFrames >= 4) {
+        // синхротон закончился → планируем декодирование
+        const bitSamples = Math.round(BIT_MS / 1000 * _sr);
+        const totalBits = PREAMBLE.length + DATA_BYTES * 8;
+        const needed = syncEndAbs
+                     + Math.round(0.045 * _sr)
+                     + totalBits * bitSamples
+                     + 400;
+        pendingDecode = { syncEndAbs, needed };
+        syncFrames = 0;
+        procIdx = end;
+        return;
+      }
+      syncFrames = 0;
+    }
+
+    procIdx += STEP;
+  }
+}
+
+/* --- поиск выравнивания и декодирование пакета --- */
+function performDecode(syncEnd) {
+  const bitSamples = Math.round(BIT_MS / 1000 * _sr);
+  const P = PREAMBLE.length;
+  const from = -Math.round(0.025 * _sr);
+  const to   =  Math.round(0.045 * _sr);
+  const step = Math.max(1, Math.round(0.001 * _sr));
+
+  let bestOff = null, bestScore = -2;
+
+  for (let off = from; off <= to; off += step) {
+    const base = syncEnd + off;
+    if (base < 0 || base + P * bitSamples > rbTotal) continue;
+
+    let score = 0;
+    for (let j = 0; j < P; j++) {
+      const s = base + j * bitSamples;
+      const { p0, p1 } = goertzelPair(s, bitSamples);
+      const d = (p1 - p0) / (p1 + p0 + 1e-12);
+      score += PREAMBLE[j] ? d : -d;
+    }
+    score /= P;
+
+    if (score > bestScore) { bestScore = score; bestOff = off; }
+  }
+
+  if (bestOff === null || bestScore < 0.40) {
+    log('⚠️ Сигнал не распознан (' + bestScore.toFixed(2) + ')');
+    return;
+  }
+
+  const base = syncEnd + bestOff + P * bitSamples;
+  const bits = [];
+  for (let i = 0; i < DATA_BYTES * 8; i++) {
+    const s = base + i * bitSamples;
+    if (s + bitSamples > rbTotal) return;
+    const { p0, p1 } = goertzelPair(s, bitSamples);
+    bits.push(p1 > p0 ? 1 : 0);
+  }
+
+  const bytes = [];
+  for (let i = 0; i < DATA_BYTES; i++) {
+    let v = 0;
+    for (let j = 0; j < 8; j++) v = (v << 1) | bits[i * 8 + j];
+    bytes.push(v);
+  }
+
+  if ((bytes[0] ^ bytes[1] ^ bytes[2]) !== bytes[3]) {
+    log('⚠️ Ошибка контрольной суммы');
+    return;
+  }
+
+  handlePacket(bytes);
+}
+
+/* ============================================================
+   АУДИО: ПЕРЕДАЧА
+   ============================================================ */
+function transmit(bytes) {
+  if (!audioCtx || isTransmitting) return;
+
+  isTransmitting = true;
+  suppressReceive = true;
+
+  const sr = _sr;
+  const bitSamples  = Math.round(BIT_MS / 1000 * sr);
+  const syncSamples = Math.round(SYNC_MS / 1000 * sr);
+  const padSamples  = Math.round(0.06 * sr);
+
+  const bits = [];
+  for (const byte of bytes)
+    for (let i = 7; i >= 0; i--) bits.push((byte >> i) & 1);
+
+  const allBits = PREAMBLE.concat(bits);
+  const dataLen = allBits.length * bitSamples;
+  const total   = padSamples + syncSamples + dataLen + padSamples;
+
+  const buf = audioCtx.createBuffer(1, total, sr);
+  const d = buf.getChannelData(0);
+
+  let phase = 0;
+  let idx = padSamples;
+  const amp = 0.85;
+
+  for (let i = 0; i < syncSamples; i++) {
+    phase += 2 * Math.PI * F_SYNC / sr;
+    d[idx++] = amp * Math.sin(phase);
+  }
+  for (const bit of allBits) {
+    const f = bit ? F1 : F0;
+    const inc = 2 * Math.PI * f / sr;
+    for (let i = 0; i < bitSamples; i++) {
+      phase += inc;
+      d[idx++] = amp * Math.sin(phase);
+    }
+  }
+
+  // плавные края
+  const fade = Math.round(0.008 * sr);
+  const sigEnd = padSamples + syncSamples + dataLen;
+  for (let i = 0; i < fade; i++) {
+    const k = i / fade;
+    d[padSamples + i] *= k;
+    d[sigEnd - 1 - i] *= k;
+  }
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.connect(audioCtx.destination);
+  src.onended = () => {
+    setTimeout(() => {
+      isTransmitting = false;
+      suppressReceive = false;
+      procIdx = Math.max(0, rbTotal - 512);
+    }, 300);
+  };
+  src.start();
+
+  log('📤 Передача… (~' + ((total / sr)).toFixed(1) + ' с)');
+}
+
+function buildPacket(type, value, sender) {
+  const b0 = type & 0xFF, b1 = value & 0xFF, b2 = sender & 0xFF;
+  return [b0, b1, b2, b0 ^ b1 ^ b2];
+}
+
+/* ============================================================
+   ПРИЁМ ПАКЕТА → ИГРА
+   ============================================================ */
+function handlePacket(bytes) {
+  const type = bytes[0], value = bytes[1], sender = bytes[2];
+
+  if (sender === myRole) return;            // свой же пакет
+  if (sender !== 1 && sender !== 2) return;
+
+  if (type === T_RESET) {
+    log('📥 Соперник начал новую игру');
+    resetLocal();
+    beep(660, 0.10);
+    return;
+  }
+
+  if (type === T_MOVE) {
+    if (gameOver) return;
+    if (turn !== sender) return;
+    if (value < 0 || value > 8 || board[value] !== 0) return;
+
+    board[value] = sender;
+    turn = (sender === 1) ? 2 : 1;
+    log('📥 Ход соперника: клетка ' + (value + 1));
+    beep(920, 0.08);
+    render();
+    checkEnd();
+  }
+}
+
+/* ============================================================
+   ИГРА
+   ============================================================ */
+function localMove(cell) {
+  if (!myRole || gameOver) return;
+  if (turn !== myRole) return;
+  if (board[cell] !== 0) return;
+
+  board[cell] = myRole;
+  turn = (myRole === 1) ? 2 : 1;
+  render();
+
+  if (!checkEnd()) {
+    transmit(buildPacket(T_MOVE, cell, myRole));
+  }
+}
+
+function resetLocal() {
+  board = new Array(9).fill(0);
+  turn = 1;
+  gameOver = false;
+  winner = 0;
+  winLine = null;
+  render();
+}
+
+$('btnNew').addEventListener('click', () => {
+  if (!myRole) return;
+  resetLocal();
+  log('🔄 Новая игра');
+  transmit(buildPacket(T_RESET, 0, myRole));
+});
+
+$('btnTest').addEventListener('click', () => {
+  if (!myRole) return;
+  log('🔧 Тестовый пакет…');
+  transmit(buildPacket(T_RESET, 0, myRole));
+});
+
+function checkEnd() {
+  for (const L of LINES) {
+    const [a, b, c] = L;
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      gameOver = true;
+      winner = board[a];
+      winLine = L;
+      render();
+      beep(winner === myRole ? 1200 : 400, 0.25);
+      return true;
+    }
+  }
+  if (board.every(v => v !== 0)) {
+    gameOver = true;
+    winner = 0;
+    render();
+    beep(600, 0.2);
+    return true;
+  }
+  return false;
+}
+
+function render() {
+  for (let i = 0; i < 9; i++) {
+    const el = cells[i];
+    el.textContent = board[i] === 1 ? '✕' : board[i] === 2 ? '◯' : '';
+    el.className = 'cell'
+      + (board[i] === 1 ? ' x' : board[i] === 2 ? ' o' : '')
+      + (winLine && winLine.includes(i) ? ' win' : '');
+    el.disabled = gameOver || board[i] !== 0 || turn !== myRole || !myRole;
+  }
+
+  if (!myRole) { statusEl.textContent = 'Ожидание…'; return; }
+
+  if (gameOver) {
+    if (winner === 0) statusEl.textContent = 'Ничья 🤝';
+    else if (winner === myRole) statusEl.textContent = 'Вы победили! 🎉';
+    else statusEl.textContent = 'Соперник победил 😔';
+  } else if (turn === myRole) {
+    statusEl.textContent = 'Ваш ход';
+  } else {
+    statusEl.textContent = 'Ход соперника…';
+  }
+}
+
+/* ============================================================
+   ЗВУКОВАЯ ОТМЕТКА СОБЫТИЙ
+   ============================================================ */
+function beep(freq, dur) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.10, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g); g.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + dur + 0.05);
+}
+
+})();
+</script>
+</body>
+</html>
